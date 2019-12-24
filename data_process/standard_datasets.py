@@ -13,8 +13,8 @@ The following datasets have currently been implemented:
 
 - MNIST
 
--
 """
+
 import shutil
 from pathlib import Path
 from numpy import random
@@ -22,8 +22,8 @@ from skimage import io
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 
-_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'
 __all__ = ['MNIST_Dataset']
+_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'
 
 
 class MNIST_Dataset(Dataset):
@@ -73,6 +73,7 @@ class MNIST_Dataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img, target
+
     @classmethod
     def create_samples(cls, n_images, test=False, delete=True):
         """
