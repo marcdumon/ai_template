@@ -5,12 +5,16 @@
 # --------------------------------------------------------------------------------------------------------
 
 """
-A collection of Pytorch Dataset classes for standard datasets. All datasets are subclasses of torch.utils.data_process.Dataset
-i.e, they have __getitem__ and __len__ methods implemented. Hence, they can all be passed to a
-torch.utils.data_process.DataLoader which can load multiple samples parallelly using torch.multiprocessing workers.
+A collection of Pytorch Dataset classes for standard datasets.
+
+All datasets are subclasses of torch.utils.data_process.Dataset i.e, they have __getitem__ and __len__ methods implemented.
+Hence, they can all be passed to a torch.utils.data_process.DataLoader which can load multiple samples parallelly using torch.multiprocessing workers.
+
+All datasets have the classes attribute which is a list of all classes.
+
+All datasets implement the create_samples() method to create a samples subset from the train and test dataset, located in the same directory.
 
 The following datasets have currently been implemented:
-
 - MNIST
 
 """
@@ -31,11 +35,12 @@ class MNIST_Dataset(Dataset):
     The MNIST (Modified National Institute of Standards and Technology) dataset contains 60.000 train and 10.000 handwritten digits.
     More info: https://en.wikipedia.org/wiki/MNIST_database
     """
-    dataset_path = Path(_base_path + 'MNIST')
-    train_path = dataset_path / 'train'
-    train_sample_path = dataset_path / 'train_sample'
-    test_path = dataset_path / 'test'
-    test_sample_path = dataset_path / 'test_sample'
+    _name = 'MNIST'
+    _dataset_path = Path(_base_path + _name)
+    _train_path = _dataset_path / 'train'
+    _train_sample_path = _dataset_path / 'train_sample'
+    _test_path = _dataset_path / 'test'
+    _test_sample_path = _dataset_path / 'test_sample'
     classes = ['0 - zero', '1 - one', '2 - two', '3 - three', '4 - four', '5 - five', '6 - six', '7 - seven', '8 - eight', '9 - nine']
 
     def __init__(self, sample=False, test=False, transform=None):
@@ -48,16 +53,18 @@ class MNIST_Dataset(Dataset):
                 E.g, ``transforms.RandomCrop``
         """
         super(MNIST_Dataset, self).__init__()
+        path = Path()
         if test and sample:
-            self.path = self.dataset_path / 'test_sample'
+            path = self._test_sample_path
         elif test and not sample:
-            self.path = self.dataset_path / 'test'
+            path = self._test_path
         elif not test and sample:
-            self.path = self.dataset_path / 'train_sample'
+            path = self._train_sample_path
         elif not test and not sample:
-            self.path = self.dataset_path / 'train'
+            path = self._train_path
+
         self.transform = transform
-        self.data = list(self.path.glob('*.png'))  # list of file paths
+        self.data = list(path.glob('*.png'))  # list of file paths
         self.targets = [int(i.stem[-1]) for i in self.data]  # image has the format 012345_num9
 
     def __len__(self):
@@ -66,7 +73,7 @@ class MNIST_Dataset(Dataset):
     def __getitem__(self, index):
         """
         Returns:
-            tuple: (image, target) where image is a transformed PIL image and target is the index of the target class
+            tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
         """
         img_path, target = self.data[index], self.targets[index]
         img = io.imread(str(img_path), as_gray=True)
@@ -88,11 +95,11 @@ class MNIST_Dataset(Dataset):
                 the operation can not be executed when the train_sample or test_sample directory exists.
         """
         if test:
-            origin_path = cls.test_path
-            destin_path = cls.test_sample_path
+            origin_path = cls._test_path
+            destin_path = cls._test_sample_path
         else:
-            origin_path = cls.train_path
-            destin_path = cls.train_sample_path
+            origin_path = cls._train_path
+            destin_path = cls._train_sample_path
 
         all_ims = list(origin_path.glob('*.png'))
 
@@ -113,9 +120,4 @@ class MNIST_Dataset(Dataset):
 
 
 if __name__ == '__main__':
-    MNIST_Dataset.create_samples(250, False)
-    x = MNIST_Dataset(True)
-    x[1]
-
-    # MNIST_Dataset.create_samples(1,False)
-    # print(random.choice(10,11, replace=False))
+    pass
