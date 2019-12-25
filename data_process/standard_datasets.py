@@ -38,6 +38,18 @@ class Standard_Dataset(Dataset):
     classes = None
 
     def __init__(self, sample=False, test=False, transform=None):
+        """
+        Args:
+              sample (bool): If True then the datasets contains only a limited amount of pictures.
+                If False, the datasets contains all the available images.
+              test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
+              transform: An optional function/transform that takes in an PIL image and returns a transformed version.
+                E.g, ``transforms.RandomCrop``
+
+        Returns:
+            tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
+        """
+        # Todo: chack docstring inheritance in children
         super(Standard_Dataset, self).__init__()
         self.transform = transform
         assert self.name, "The str parameter 'name' is not set. "
@@ -99,12 +111,12 @@ class MNIST_Dataset(Standard_Dataset):
 
     def __init__(self, sample=False, test=False, transform=None):
         """
-        Args:
-              sample (bool): If True then the datasets contains only a limited amount of pictures.
-                If False, the datasets contains all the available images.
-              test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
-              transform: An optional function/transform that takes in an PIL image and returns a transformed version.
-                E.g, ``transforms.RandomCrop``
+           Args:
+                 sample (bool): If True then the datasets contains only a limited amount of pictures.
+                   If False, the datasets contains all the available images.
+                 test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
+                 transform: An optional function/transform that takes in an PIL image and returns a transformed version.
+                   E.g, ``transforms.RandomCrop``
         """
         super(MNIST_Dataset, self).__init__(sample, test, transform)
         self.data = list(self.path.glob('*.png'))  # list of file paths
@@ -114,10 +126,6 @@ class MNIST_Dataset(Standard_Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        """
-        Returns:
-            tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
-        """
         img_path, target = self.data[index], self.targets[index]
         img = io.imread(str(img_path), as_gray=False)  # 28x28
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
