@@ -65,13 +65,14 @@ class Standard_Dataset(Dataset):
             self.path = _dataset_path / 'test_sample'
 
     @classmethod
-    def create_samples(cls, n_images, test=False, delete=True):
+    def create_samples(cls, n_images, ext='png', test=False, delete=True):
         """
         Copies a n_images number of random images from the train or test directory to train_sample or test_sample directory.
 
         Args:
             n_images: If n_images is an integer then it's the number of images that the sample directory will contain.
                 If n_images is a float<1 then it's the fraction of train or test images that the sample directory will contain.
+            ext: The extension for the images. Can be *.
             test: If True then it will copy the images from the test directory to the test_sample directory.
                 If it's False it will copy the images from the train directory to the train_sample directory.
             delete: If True then the existing train_sample or test_sample directory will be deleted. If False then
@@ -85,7 +86,7 @@ class Standard_Dataset(Dataset):
             origin_path = _dataset_path / 'test'
             destin_path = _dataset_path / 'test_sample'
 
-        all_ims = list(origin_path.glob('*.png'))
+        all_ims = list(origin_path.glob(f'*.{ext}'))
 
         if float(n_images).is_integer():
             assert (n_images < len(all_ims)) and (n_images > 0), f"Can't take {n_images} samples from {len(all_ims)} train or test images"
