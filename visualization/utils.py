@@ -8,7 +8,7 @@ from math import floor, ceil, sqrt
 import matplotlib.pyplot as plt
 
 
-def show_mpl_grid(images, titles, figsize=(10, 7), shape=(0, 0), cm='gray'):
+def show_mpl_grid(images, titles=None, figsize=(10, 7), shape=(0, 0), cm='gray'):
     """
     Shows images in a grid. Uses matplotlib pyplot
 
@@ -34,6 +34,11 @@ def show_mpl_grid(images, titles, figsize=(10, 7), shape=(0, 0), cm='gray'):
     for i in range(len(images)):
         ax = plt.subplot(shape[0], shape[1], 1 + i)
         ax.imshow(images[i], cmap=cm)
-        ax.title.set_text(titles[i])
+        if titles:
+            ax.title.set_text(titles[i])
     # plt.tight_layout(1.08)
-    plt.show()
+    plt.show(block=False)
+    # plt.pause(2)
+    plt.waitforbuttonpress(0)
+    plt.close()
+

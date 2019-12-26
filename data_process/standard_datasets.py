@@ -26,7 +26,8 @@ from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 
 __all__ = ['MNIST_Dataset']
-_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'
+
+_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/' # Todo: refactor this outside
 
 
 class Standard_Dataset(Dataset):
@@ -49,11 +50,11 @@ class Standard_Dataset(Dataset):
         Returns:
             tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
         """
-        # Todo: chack docstring inheritance in children
+        # Todo: check docstring inheritance in children
         super(Standard_Dataset, self).__init__()
         self.transform = transform
-        assert self.name, "The str parameter 'name' is not set. "
-        assert self.classes, "The list parameter 'classes' is not set."
+        assert self.name, "The class variable str 'name' is not set. "
+        assert self.classes, "The class variable list 'classes' is not set."
         _dataset_path = Path(_base_path + self.name)
         if not test and not sample:
             self.path = _dataset_path / 'train'
@@ -109,7 +110,6 @@ class MNIST_Dataset(Standard_Dataset):
     """
     name = 'MNIST'
     classes = ['0 - zero', '1 - one', '2 - two', '3 - three', '4 - four', '5 - five', '6 - six', '7 - seven', '8 - eight', '9 - nine']
-
     def __init__(self, sample=False, test=False, transform=None):
         """
            Args:
@@ -136,4 +136,5 @@ class MNIST_Dataset(Standard_Dataset):
 
 
 if __name__ == '__main__':
-    MNIST_Dataset.create_samples(10)
+    print(MNIST_Dataset)
+
