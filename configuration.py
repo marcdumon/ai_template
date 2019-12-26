@@ -13,7 +13,9 @@ from typing import List
 
 import yaml
 
-
+# Todo: How to manage different stages in training.
+# Todo: settings in py or yml file?
+#   if in .py then why do we need yml for training recipes?
 @dataclass
 class Config:
     """Dataclass with all configuration parameters. These remain fixed from experiment to experiment"""
