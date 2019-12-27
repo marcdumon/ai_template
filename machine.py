@@ -22,12 +22,12 @@ class Model(nn.Module):
 
     def forward(self, x):
         x = self.cnn(x)
-        #
-        # if state['epoch'] % 100 == 0:
-        #     for name, param in self.cnn.conv2.named_parameters():
-        #         # print(name,param)
-        #         pass
-        #     # print(state['epoch'])
+
+        if state['epoch'] % 100 == 0:
+            for name, param in self.cnn.conv2.named_parameters():
+                # print(name,param)
+                pass
+            # print(state['epoch'])
         return x
 
 
@@ -47,7 +47,7 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
         writer = SummaryWriter(log_dir)
         data_loader_iter = iter(data_loader)
         x, y = next(data_loader_iter)
-        # x, y = x.to('cuda'), y.to('cuda')
+        x, y = x.to('cuda'), y.to('cuda')
         try:
             writer.add_graph(model, x)
         except Exception as e:
@@ -61,7 +61,10 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
         pbar.desc = desc.format(engine.state.output)
         pbar.update(1)
         state['epoch'] += 1
-
+        if state['epoch'] % 100 == 0:
+            print('=' * 120)
+            print(model.state_dict())
+            th.save(model, 'xxx.pt')
 
     # def log_training_loss(trainer):
     # print("Epoch[{}] Loss: {:.2f}".format(trainer.state.epoch, trainer.state.output))
