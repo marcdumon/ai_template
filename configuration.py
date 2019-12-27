@@ -8,82 +8,124 @@ Manages the configuration of the environemet and the recipe for running the mach
 It reads a yaml files into dataclasses.
 """
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 from pprint import pprint
+from time import sleep
 from typing import List
 
 import yaml
 
-# Todo: How to manage different stages in training.
-# Todo: settings in py or yml file?
-#   if in .py then why do we need yml for training recipes?
+from my_tools.tools import now_str
+
+'''
+Why using dataclass iso dictionary ?
+    - structure:
+        module configuration.py
+            DC()
+            cd = DC()
+        module main_app.py
+            from configuration import dc
+            dc.lr = 10                  dic['lr'] = 10
+                                        run(dic)
+        module machine.py
+            from configuration import dc
+                lr = dc.lr              lr = dic['lr']
+    - getting and setting dataclass iso dictionary: 
+        - lr = dc.lr iso lr = dic['ld']
+        - easy saving dataclass
+    - using of gridsearch: 
+        for lr in [1e-2, 1e-3, ...]:
+            for drop in [.1, .2, ...]:
+                dc.lr = lr                dic['lr] = lr
+                dc.drop = drop            dic['drop'] = drop
+                run()                     run(dic)
+    - using stages:
+        dc1 = DC()
+        dc2 = DC()
+        for dc in [dc1, dc2]:
+            run()
+    - save and load:
+        dc.save()
+        dc.load()
+'''
+
+
 @dataclass
 class Config:
     """Dataclass with all configuration parameters. These remain fixed from experiment to experiment"""
-    config_file: str = './config.yml'
-    recipe_file: str = './recipe.yml'
+    default_config_file: str = './default_config.yml'
+    default_recipe_file: str = './default_recipe.yml'
+
+    # checkpoint_path: str = '/media/md/Development/'
+    checkpoint_path: str = './'
 
     @staticmethod
-    def save_yaml():
-        default_cfg = Config()
-        with open(default_cfg.config_file, 'w') as f:
-            yaml.dump(default_cfg.__dict__, f, default_flow_style=False)
-        return default_cfg
+    def save_default_yaml():
+        default_rcp = Config().save_yaml(Config.default_config_file)
+
+    def save_yaml(self, file=f'{checkpoint_path}config.yml'):
+        with open(file, 'w') as f:
+            yaml.dump(self.__dict__, f, default_flow_style=False)
+        return self
 
     @classmethod
-    def load_yaml(cls, file=None):
-        """Load the config yaml and returns a Config dataclass"""
-        if not file: file = cls.config_file
+    def load_yaml(cls, file=f'{checkpoint_path}config.yml'):
+        """Load the recipe yaml and returns a Recipe dataclass"""
         try:
             with open(file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
             return cls(**config)
         except FileNotFoundError:
-            print("Config file doesn't exist. Run Config.create_empty_yaml to create cls.config_file with default settings")
+            print("Recipe file doesn't exist.")
+            print("Returning default config instead")
             return Config()
 
 
-cfg = Config.load_yaml()
-Config.save_yaml()
+cfg = Config()
 
 
 @dataclass()
-class Recipe:
+class Recipe:  # Prescription, Ingredient, ModusOperandi
     """
     A dataclass with all the parameters that might vary from one experiment to the other or from one stage of an experiment
     to the other stage
     """
-    seed: list = field(default_factory=list)
-    lr: list = field(default_factory=list)
-    dp: list = field(default_factory=list)
+    experiment: str = 'exp'
+    stage: int = 1
+
+    seed: int = 19640601
+    lr: float = 3e-3
+    dropout: float = 0.5
+    creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
-    def create_empty_yaml():
-        default_rcp = Recipe()
-        with open(cfg.recipe_file, 'w') as f:
-            yaml.dump(default_rcp.__dict__, f, default_flow_style=False)
-        return default_rcp
+    def save_default_yaml():
+        default_rcp = Recipe().save_yaml(cfg.default_recipe_file)
+
+    def save_yaml(self, file=f'{cfg.checkpoint_path}rcp_{experiment}_{stage}.yml'):
+        with open(file, 'w') as f:
+            yaml.dump(self.__dict__, f, default_flow_style=False)
+        return self
 
     @classmethod
-    def load_yaml(cls, file=None):
+    def load_yaml(cls, file=f'{cfg.checkpoint_path}rcp_{experiment}_{stage}.yml'):
         """Load the recipe yaml and returns a Recipe dataclass"""
-        if not file: file = cfg.recipe_file
         try:
             with open(file, 'r') as f:
                 recipe = yaml.load(f, Loader=yaml.FullLoader)
             return cls(**recipe)
         except FileNotFoundError:
-            print("Recipe file doesn't exist. Run Recipe.create_empty_yaml to create cfg.recipe_file with default settings")
-            print("Returning default recipe now")
+            print("Recipe file doesn't exist.")
+            print("Returning default recipe instead")
             return Recipe()
 
 
-rcp = Recipe.load_yaml()
+rcp = Recipe()
 
 if __name__ == '__main__':
-    # x = Recipe()
-    x = cfg
-    pprint(x)
-    x = rcp
-    pprint(x)
+    print(cfg)
+    # sleep(5)
+    cfg.save_yaml()
 
-    # Recipe.create_empty_yaml()
+    cfg.load_yaml()
+    print(cfg)
