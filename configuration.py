@@ -3,6 +3,7 @@
 # src - configuration.py
 # md
 # --------------------------------------------------------------------------------------------------------
+
 """
 Manages the configuration of the environemet and the recipe for running the machine.
 It reads a yaml files into dataclasses.
@@ -50,18 +51,23 @@ Why using dataclass iso dictionary ?
 '''
 
 
+# Todo: Create a dataclass for modelparameters
+# Todo: Make an abstract base dataclass
+
+
 @dataclass
 class Config:
     """Dataclass with all configuration parameters. These remain fixed from experiment to experiment"""
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
-
     # checkpoint_path: str = '/media/md/Development/'
     checkpoint_path: str = './'
 
+    creation_time: str = now_str('yyyymmdd_hhmmss')
+
     @staticmethod
     def save_default_yaml():
-        default_rcp = Config().save_yaml(Config.default_config_file)
+        default_rcp = Config().save_yaml(cfg.default_config_file)
 
     def save_yaml(self, file=f'{checkpoint_path}config.yml'):
         with open(file, 'w') as f:
@@ -74,11 +80,10 @@ class Config:
         try:
             with open(file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
-            return cls(**config)
+            cfg.__dict__ = config
+            return cfg
         except FileNotFoundError:
-            print("Recipe file doesn't exist.")
-            print("Returning default config instead")
-            return Config()
+            print("Config file doesn't exist.")
 
 
 cfg = Config()
@@ -95,7 +100,11 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     seed: int = 19640601
     lr: float = 3e-3
-    dropout: float = 0.5
+    lr_frac: List[int] = field(default_factory=lambda: [1])  # By how much the lr will be devided
+
+    model_parameters: List[float] = field(default_factory=lambda: [0.5])
+
+    test: Config = field(default_factory=lambda: cfg)
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
@@ -113,19 +122,22 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
         try:
             with open(file, 'r') as f:
                 recipe = yaml.load(f, Loader=yaml.FullLoader)
-            return cls(**recipe)
+            rcp.__dict__ = recipe
+            return rcp
         except FileNotFoundError:
             print("Recipe file doesn't exist.")
-            print("Returning default recipe instead")
-            return Recipe()
+            raise
 
 
 rcp = Recipe()
 
 if __name__ == '__main__':
+    print(rcp)
+    rcp.load_yaml('./default_recipe.yml')
+    print(rcp)
     print(cfg)
-    # sleep(5)
-    cfg.save_yaml()
-
-    cfg.load_yaml()
-    print(cfg)
+    # rcp.save_default_yaml()
+    # rcp.test.default_config_file='./hahhahhahhah.yml'
+    # rcp.test.save_default_yaml()
+    # pprint(rcp)
+    # pprint(cfg)

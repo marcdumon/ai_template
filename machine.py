@@ -15,8 +15,6 @@ import torch as th
 from models.standard_models import MNSIT_Simple
 
 
-
-
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
@@ -25,14 +23,15 @@ class Model(nn.Module):
     def forward(self, x):
         x = self.cnn(x)
 
-        if  state['epoch'] % 100==0:
+        if state['epoch'] % 100 == 0:
             for name, param in self.cnn.conv2.named_parameters():
                 # print(name,param)
                 pass
             # print(state['epoch'])
         return x
 
-state={'epoch':0}
+
+state = {'epoch': 0}
 
 
 def xxx(model, train_loader, val_loader, optimizer, loss):
@@ -61,9 +60,9 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
     def log_training_loss(engine):
         pbar.desc = desc.format(engine.state.output)
         pbar.update(1)
-        state['epoch']+=1
-        if state['epoch'] %100==0:
-            print('='*120)
+        state['epoch'] += 1
+        if state['epoch'] % 100 == 0:
+            print('=' * 120)
             print(model.state_dict())
             th.save(model, 'xxx.pt')
 
@@ -83,7 +82,6 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
     @trainer.on(Events.ITERATION_COMPLETED(every=10))
     def log_tenserboard(engine):
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
-
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):

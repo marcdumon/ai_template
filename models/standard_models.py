@@ -14,6 +14,8 @@ import torchvision as thv
 
 from visualization.utils import show_mpl_grid
 
+# Todo: Put the model parameters
+
 
 class MNSIT_Simple(nn.Module):
 

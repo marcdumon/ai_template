@@ -28,3 +28,4 @@ Long Term:
 - Install automatic API documentation: [epydoc](http://epydoc.sourceforge.net/)
 - Check ODO: https://github.com/blaze/odo
 - Install Sphinx for documentation building
+- Checkout this animation about convolution : [Convolution arithmetic](https://github.com/vdumoulin/conv_arithmetic)
