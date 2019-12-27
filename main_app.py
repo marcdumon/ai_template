@@ -4,3 +4,12 @@
 # md
 # --------------------------------------------------------------------------------------------------------
 
+from configuration import rcp
+from test3 import run_rcp
+
+# rcp.lr_frac=[1,2,3,4,5,6,7]
+rcp.load_yaml()
+print(rcp)
+
+
+run_rcp()
