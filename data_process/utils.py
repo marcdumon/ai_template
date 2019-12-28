@@ -11,6 +11,7 @@ from copy import deepcopy
 
 import numpy as np
 import pandas as pd
+import torch as th
 from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split
 
@@ -72,6 +73,21 @@ def get_class_distribution(dataset):
     class_distribution['normalised'] = class_distribution['n_samples'] / max(class_distribution['n_samples'])
     class_distribution['class'] = classes
     return class_distribution
+
+
+def get_mean_and_std(dataset): # Todo: check this out
+    """ Compute the mean and std value of dataset. From: https://github.com/isaykatsman/pytorch-cifar/blob/master/utils.py """
+    dataloader = th.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
+    mean = th.zeros(3)
+    std = th.zeros(3)
+    print('==> Computing mean and std..')
+    for inputs, targets in dataloader:
+        for i in range(3):
+            mean[i] += inputs[:, i, :, :].mean()
+            std[i] += inputs[:, i, :, :].std()
+    mean.div_(len(dataset))
+    std.div_(len(dataset))
+    return mean, std
 
 
 if __name__ == '__main__':
