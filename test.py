@@ -34,22 +34,6 @@ from models.standard_models import MNSIT_Simple
 from my_tools.tools import set_random_seed
 from visualization.utils import show_mpl_grid
 
-seed = 42
-set_random_seed(seed)
-
-bs = 8
-expertiment_name = 'XXX'
-tb_logdir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/' + expertiment_name
-
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-# MNIST_Dataset.create_samples(250)
-mnist_ds = MNIST_Dataset(sample=False, transform=transform)
-train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
-train.data=train.data[:50]
-train.targets=train.targets[:50]
-print(len(train), len(valid))
-train_loader = DataLoader(train, batch_size=bs, num_workers=8, shuffle=True)
-val_loader = DataLoader(valid, batch_size=bs, num_workers=8, shuffle=True)
 
 model = Model().cuda()
 # optimizer = th.optim.Adam(model.parameters(), lr=3e-3)

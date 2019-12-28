@@ -62,7 +62,7 @@ class Config:
     default_recipe_file: str = './default_recipe.yml'
     # checkpoint_path: str = '/media/md/Development/'
     checkpoint_path: str = './'
-
+    tb_basedir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
@@ -97,15 +97,19 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     """
     experiment: str = 'exp'
     stage: int = 1
-
     seed: int = 19640601
+    bs: int = 64
     lr: float = 3e-3
     lr_frac: List[int] = field(default_factory=lambda: [1])  # By how much the lr will be devided
+    max_epochs=5
 
-    model_parameters: List[float] = field(default_factory=lambda: [0.5])
 
-    test: Config = field(default_factory=lambda: cfg)
+    shuffle_batch:bool=True
+    # model_parameters: Todo: separated, inheritated or nested. Where putting the parameters?
+    # test: Config = field(default_factory=lambda: cfg)
+
     creation_time: str = now_str('yyyymmdd_hhmmss')
+    tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
 
     @staticmethod
     def save_default_yaml():
@@ -132,12 +136,5 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 rcp = Recipe()
 
 if __name__ == '__main__':
-    print(rcp)
-    rcp.load_yaml('./default_recipe.yml')
-    print(rcp)
     print(cfg)
-    # rcp.save_default_yaml()
-    # rcp.test.default_config_file='./hahhahhahhah.yml'
-    # rcp.test.save_default_yaml()
-    # pprint(rcp)
-    # pprint(cfg)
+    print(rcp)

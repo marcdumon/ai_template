@@ -12,16 +12,25 @@ import torch.nn as nn
 from torchvision.transforms import transforms
 from tqdm import tqdm
 import torch as th
+
+from configuration import cfg, rcp
 from models.standard_models import MNSIT_Simple
 
 
 class Model(nn.Module):
+    '''
+    Use this model to interfere in forward pass steps????
+    '''
+
     def __init__(self):
         super(Model, self).__init__()
         self.cnn = MNSIT_Simple()
+        self.resnet = resnet18(pretrained=True)
 
     def forward(self, x):
         x = self.cnn(x)
+        x2 = self.cnn.conv1(x)
+        x3 = self.resnet.layer1(x)
 
         if state['epoch'] % 100 == 0:
             for name, param in self.cnn.conv2.named_parameters():
@@ -30,12 +39,38 @@ class Model(nn.Module):
             # print(state['epoch'])
         return x
 
+    def setup(self):
+        # (un)freezing layers
+        #
+        for name, param in self.cnn.named_parameters():
+            param.requires_grad=True
+            print(name, param.requires_grad)
+
+        pass
+
+
+model=Model()
+model.setup()
 
 state = {'epoch': 0}
 
 
-def xxx(model, train_loader, val_loader, optimizer, loss):
-    tb_logdir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
+def xxx(train, valid, optimizer, loss):
+    # MODEL
+    model = Model
+
+    # DATA
+    transform = transforms.Compose([transforms.ToPILImage(),
+                                    transforms.Resize(10),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.1307,), (0.3081,))
+                                    ])
+
+    train.transform, valid.transform = transform, transform
+    train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
+    valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
+
+
     trainer = create_supervised_trainer(model, optimizer, loss, device='cuda')
     evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(), 'nll': Loss(loss)}, device='cuda')
 
@@ -54,7 +89,7 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
             print("Failed to save model graph: {}".format(e))
         return writer
 
-    writer = create_summary_writer(model, train_loader, tb_logdir)
+    writer = create_summary_writer(model, train_loader, rcp.tb_logdir)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=1))
     def log_training_loss(engine):
@@ -85,7 +120,7 @@ def xxx(model, train_loader, val_loader, optimizer, loss):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
-        evaluator.run(val_loader)
+        evaluator.run(valid_loader)
         metrics = evaluator.state.metrics
         print("Valid Results - Epoch: {}  Avg accuracy: {:.5f} Avg loss: {:.5f}"
               .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))

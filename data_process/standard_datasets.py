@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 
 __all__ = ['MNIST_Dataset']
 
-_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/' # Todo: refactor this outside
+_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'  # Todo: refactor this outside
 
 
 class Standard_Dataset(Dataset):
@@ -110,6 +110,7 @@ class MNIST_Dataset(Standard_Dataset):
     """
     name = 'MNIST'
     classes = ['0 - zero', '1 - one', '2 - two', '3 - three', '4 - four', '5 - five', '6 - six', '7 - seven', '8 - eight', '9 - nine']
+
     def __init__(self, sample=False, test=False, transform=None):
         """
            Args:
@@ -132,9 +133,8 @@ class MNIST_Dataset(Standard_Dataset):
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
         if self.transform is not None:
             img = self.transform(img)
-        return img, target
+        return img, target  # Todo: is it not better to use a dict iso tuple? In dict, we easily can add other (meta)data
 
 
 if __name__ == '__main__':
     print(MNIST_Dataset)
-

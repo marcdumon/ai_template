@@ -1,12 +1,12 @@
 # --------------------------------------------------------------------------------------------------------
 # 2019/12/27
-<<<<<<< HEAD
 # src - tools.py
 # md
 # --------------------------------------------------------------------------------------------------------
 import random
 import numpy as np
 import torch as th
+from datetime import datetime
 
 
 def set_random_seed(seed):
@@ -15,11 +15,6 @@ def set_random_seed(seed):
     th.manual_seed(seed)
     th.backends.cudnn.deterministic = True
     th.backends.cudnn.benchmark = False
-=======
-# src - tools.py.py
-# md
-# --------------------------------------------------------------------------------------------------------
-from datetime import datetime
 
 
 def now_str(pattern='yyyymmdd_hhmmss'):
@@ -48,4 +43,3 @@ def now_str(pattern='yyyymmdd_hhmmss'):
 
 if __name__ == '__main__':
     print(now_str())
->>>>>>> yaml_config
