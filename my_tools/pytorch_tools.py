@@ -6,9 +6,12 @@
 from copy import deepcopy
 import torch as th
 from sklearn.model_selection import train_test_split
+import pandas as pd
+
 from my_tools.python_tools import print_file
 
 
+# MODELS
 def set_requires_grad(model, names, requires_grad):
     """
     Set the requires_grad on parameters from model based on in_name
@@ -23,9 +26,27 @@ def set_requires_grad(model, names, requires_grad):
     for n in names:
         for name, param in [(name, param) for name, param in model.named_parameters() if n in name]:
             param.requires_grad = requires_grad
-            print_file(f'\t{name:30}: {requires_grad}')
+            print_file(f'\t{name:40}: {requires_grad}')
 
 
+def set_lr(model, name, lr):
+    """
+    Sets the learning rate for parameters defined by name to be used in optimizers
+
+    Args:
+        model:
+        name: the lr will be set to all model parameters that contain name in their names.
+        lr: learning rate for the parameter
+
+    Returns:
+        List of dictionaries of the form [{'params': ???, 'lr': lr}, ...]
+    """
+    state_dict = model.state_dict()
+    params = [{'name':n,'params': p, 'lr': lr} for n, p in model.named_parameters() if name in n] # name added for debugging
+    return params
+
+
+# DATA
 def random_split_train_valid(dataset, valid_frac):
     """
     Randomly splits a dataset into a train and valid dataset subset.
