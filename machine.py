@@ -41,12 +41,6 @@ class Model(nn.Module):
         return x
 
 
-model = Model()
-# model.setup()
-
-state = {'epoch': 0}
-
-
 def run_training(model, train, valid, optimizer, loss):
     # DATA
     transform = transforms.Compose([transforms.ToPILImage(),
