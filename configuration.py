@@ -57,13 +57,15 @@ Why using dataclass iso dictionary ?
 
 @dataclass
 class Config:
-    """Dataclass with all configuration parameters. These remain fixed from experiment to experiment"""
+    """Dataclass with all configuration parameters."""
+
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
     # checkpoint_path: str = '/media/md/Development/'
     checkpoint_path: str = './'
     tb_basedir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
     log_path: str = './'
+
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     def __post_init__(self):
@@ -103,6 +105,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     experiment: str = 'exp'
     stage: int = 1
     seed: int = 19640601
+
     bs: int = 64
     lr: float = 3e-3
     lr_frac: List[int] = field(default_factory=lambda: [1])  # By how much the lr will be devided
@@ -114,6 +117,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
     tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
+    summary_file: str = f'{cfg.log_path}summary_{stage}.txt'
 
     def __post_init__(self):
         self.creation_time = now_str('yyyymmdd_hhmmss')
