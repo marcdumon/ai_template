@@ -8,6 +8,21 @@ from math import floor, ceil, sqrt
 import matplotlib.pyplot as plt
 
 
+def print_file(txt, file=None, append=True):
+    """
+    Print to console. If file given then also print to file
+
+    Args:
+        txt: text to print or to save in file.
+        file: if given, txt will be saved in file
+        append: if false then a new file will be created, if tre then txt will be appended to an existing file.
+    """
+    print(txt)
+    mode = 'w'
+    if append: mode = 'a'
+    if file: print(txt, file=open(file, mode))
+
+
 def show_mpl_grid(images, titles=None, figsize=(10, 7), gridshape=(0, 0), cm='gray'):
     # Todo: have this accept a list, np.array or tensor of images. Have different functions for that?
     # Todo: change name to mpl_show_grid? mlp_show_batch?
