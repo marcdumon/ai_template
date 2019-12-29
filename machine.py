@@ -13,7 +13,7 @@ from torchvision.transforms import transforms
 from tqdm import tqdm
 import torch as th
 
-from configuration import cfg, rcp, original_rcp, original_cfg
+from configuration import cfg, rcp
 from models.standard_models import MNSIT_Simple
 
 
@@ -114,32 +114,8 @@ def run_training(model, train, valid, optimizer, loss):
         print("Valid Results - Epoch: {}  Avg accuracy: {:.5f} Avg loss: {:.5f}"
               .format(trainer.state.epoch, metrics['accuracy'], metrics['nll']))
 
-    if rcp != original_rcp: rcp.save_yaml()
-    if cfg != original_cfg: cfg.save_default_yaml()
+    rcp.save_yaml()
 
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     return trainer
 
-
-'''
-ITERATION - loss: 0.10: 100%|██████████| 750/750 [00:12<00:00, 142.35it/s]Train Results - Epoch: 1  Avg accuracy: 0.98140 Avg loss: 0.05939
-Valid Results - Epoch: 1  Avg accuracy: 0.97833 Avg loss: 0.07025
-ITERATION - loss: 0.11: 1500it [00:25, 135.02it/s]Train Results - Epoch: 2  Avg accuracy: 0.98633 Avg loss: 0.04214
-Valid Results - Epoch: 2  Avg accuracy: 0.98250 Avg loss: 0.05826
-ITERATION - loss: 0.11: 2250it [00:38, 136.34it/s]Train Results - Epoch: 3  Avg accuracy: 0.98915 Avg loss: 0.03429
-Valid Results - Epoch: 3  Avg accuracy: 0.98300 Avg loss: 0.06104
-ITERATION - loss: 0.08: 3000it [00:51, 135.64it/s]Train Results - Epoch: 4  Avg accuracy: 0.98754 Avg loss: 0.03994
-Valid Results - Epoch: 4  Avg accuracy: 0.97958 Avg loss: 0.06719
-ITERATION - loss: 0.12: 3750it [01:03, 141.88it/s]Train Results - Epoch: 5  Avg accuracy: 0.99333 Avg loss: 0.02030
-Valid Results - Epoch: 5  Avg accuracy: 0.98725 Avg loss: 0.04784
-ITERATION - loss: 0.11: 4500it [01:16, 137.79it/s]Train Results - Epoch: 6  Avg accuracy: 0.99300 Avg loss: 0.02143
-Valid Results - Epoch: 6  Avg accuracy: 0.98442 Avg loss: 0.05858
-ITERATION - loss: 0.01: 5250it [01:29, 150.33it/s]Train Results - Epoch: 7  Avg accuracy: 0.99513 Avg loss: 0.01495
-Valid Results - Epoch: 7  Avg accuracy: 0.98633 Avg loss: 0.05966
-ITERATION - loss: 0.01: 6000it [01:42, 139.87it/s]Train Results - Epoch: 8  Avg accuracy: 0.99377 Avg loss: 0.02086
-Valid Results - Epoch: 8  Avg accuracy: 0.98392 Avg loss: 0.07071
-ITERATION - loss: 0.19: 6750it [01:55, 138.50it/s]Train Results - Epoch: 9  Avg accuracy: 0.99508 Avg loss: 0.01491
-Valid Results - Epoch: 9  Avg accuracy: 0.98467 Avg loss: 0.07098
-ITERATION - loss: 0.28: 7500it [02:08, 139.68it/s]Train Results - Epoch: 10  Avg accuracy: 0.99671 Avg loss: 0.01058
-Valid Results - Epoch: 10  Avg accuracy: 0.98633 Avg loss: 0.06893
-'''
