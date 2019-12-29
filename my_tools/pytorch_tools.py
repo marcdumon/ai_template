@@ -1,19 +1,29 @@
 # --------------------------------------------------------------------------------------------------------
-# 2019/12/24
-# src - utils.py
+# 2019/12/29
+# src - pytorch_tools.py
 # md
 # --------------------------------------------------------------------------------------------------------
-
-"""
-A collection of tools to manipulate data
-"""
 from copy import deepcopy
-
-import numpy as np
-import pandas as pd
 import torch as th
 from sklearn.model_selection import train_test_split
-from torch.utils.data import random_split
+from my_tools.python_tools import print_file
+
+
+def set_requires_grad(model, names, requires_grad):
+    """
+    Set the requires_grad on parameters from model based on in_name
+    Args:
+        model:
+        names: str, int of list[str]
+        requires_grad: bool
+    """
+    if isinstance(names, str): names = [names]
+    if isinstance(names, int): names = [str(names)]
+    print_file(f'Setting requires_grad:')
+    for n in names:
+        for name, param in [(name, param) for name, param in model.named_parameters() if n in name]:
+            param.requires_grad = requires_grad
+            print_file(f'\t{name:30}: {requires_grad}')
 
 
 def random_split_train_valid(dataset, valid_frac):
@@ -75,7 +85,7 @@ def get_class_distribution(dataset):
     return class_distribution
 
 
-def get_mean_and_std(dataset): # Todo: check this out
+def get_mean_and_std(dataset):  # Todo: check this out
     """ Compute the mean and std value of dataset. From: https://github.com/isaykatsman/pytorch-cifar/blob/master/utils.py """
     dataloader = th.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = th.zeros(3)
@@ -88,7 +98,3 @@ def get_mean_and_std(dataset): # Todo: check this out
     mean.div_(len(dataset))
     std.div_(len(dataset))
     return mean, std
-
-
-if __name__ == '__main__':
-    pass
