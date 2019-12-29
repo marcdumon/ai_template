@@ -116,7 +116,11 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
     tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
-    summary_file: str = f'{cfg.log_path}summary_{stage}.txt'
+    # summary_file: str = f'{cfg.log_path}summary_{stage}.txt'
+    @property
+    def summary_file(self):
+        return f'{cfg.log_path}summary_{self.stage}.txt'
+
 
     def __post_init__(self):
         self.creation_time = now_str('yyyymmdd_hhmmss')
