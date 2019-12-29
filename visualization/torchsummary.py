@@ -80,30 +80,30 @@ def summary(model, input_size, batch_size=-1, device="cuda", to_file=None):
     for h in hooks:
         h.remove()
 
-    print("----------------------------------------------------------------")
-    line_new = "{:>20}  {:>25} {:>15}".format("Layer (type)", "Output Shape", "Param #")
+    print("--------------------------------------------------------------------------")
+    line_new = "{:>20}  {:>25} {:>15}  {:>8}".format("Layer (type)", "Output Shape", "Param #", 'Unfrozen')
     print(line_new)
-    print("================================================================")
+    print("==========================================================================")
     if to_file:
-        print("----------------------------------------------------------------", file=open(to_file, 'w'))
+        print("--------------------------------------------------------------------------", file=open(to_file, 'w'))
         print(line_new, file=open(to_file, 'a'))
-        print("================================================================", file=open(to_file, 'a'))
+        print("==========================================================================", file=open(to_file, 'a'))
 
     total_params = 0
     total_output = 0
     trainable_params = 0
     for layer in summary:
         # input_shape, output_shape, trainable, nb_params
-        line_new = "{:>20}  {:>25} {:>15}".format(
-            layer,
-            str(summary[layer]["output_shape"]),
-            "{0:,}".format(summary[layer]["nb_params"]),
-        )
+        line_new = "{:>20}  {:>25} {:>15}".format(layer,
+                                                  str(summary[layer]["output_shape"]),
+                                                  "{0:,}".format(summary[layer]["nb_params"]),
+                                                  )
+        if "trainable" in summary[layer]:
+            line_new += "   {}".format(summary[layer]["trainable"])
         total_params += summary[layer]["nb_params"]
         total_output += np.prod(summary[layer]["output_shape"])
         if "trainable" in summary[layer]:
-            if summary[layer]["trainable"] == True:
-                trainable_params += summary[layer]["nb_params"]
+            if summary[layer]["trainable"]: trainable_params += summary[layer]["nb_params"]
         print(line_new)
         if to_file: print(line_new, file=open(to_file, 'a'))
 
@@ -113,26 +113,26 @@ def summary(model, input_size, batch_size=-1, device="cuda", to_file=None):
     total_params_size = abs(total_params.numpy() * 4. / (1024 ** 2.))
     total_size = total_params_size + total_output_size + total_input_size
 
-    print("================================================================")
+    print("==========================================================================")
     print("Total params: {0:,}".format(total_params))
     print("Trainable params: {0:,}".format(trainable_params))
     print("Non-trainable params: {0:,}".format(total_params - trainable_params))
-    print("----------------------------------------------------------------")
+    print("--------------------------------------------------------------------------")
     print("Input size (MB): %0.2f" % total_input_size)
     print("Forward/backward pass size (MB): %0.2f" % total_output_size)
     print("Params size (MB): %0.2f" % total_params_size)
     print("Estimated Total Size (MB): %0.2f" % total_size)
-    print("----------------------------------------------------------------")
+    print("--------------------------------------------------------------------------")
     if to_file:
-        print("================================================================", file=open(to_file, 'a'))
+        print("==========================================================================", file=open(to_file, 'a'))
         print("Total params: {0:,}".format(total_params), file=open(to_file, 'a'))
         print("Trainable params: {0:,}".format(trainable_params), file=open(to_file, 'a'))
         print("Non-trainable params: {0:,}".format(total_params - trainable_params), file=open(to_file, 'a'))
-        print("----------------------------------------------------------------", file=open(to_file, 'a'))
+        print("--------------------------------------------------------------------------", file=open(to_file, 'a'))
         print("Input size (MB): %0.2f" % total_input_size, file=open(to_file, 'a'))
         print("Forward/backward pass size (MB): %0.2f" % total_output_size, file=open(to_file, 'a'))
         print("Params size (MB): %0.2f" % total_params_size, file=open(to_file, 'a'))
         print("Estimated Total Size (MB): %0.2f" % total_size, file=open(to_file, 'a'))
-        print("----------------------------------------------------------------", file=open(to_file, 'a'))
+        print("--------------------------------------------------------------------------", file=open(to_file, 'a'))
 
     # return summary
