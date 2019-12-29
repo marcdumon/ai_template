@@ -29,9 +29,9 @@ import torch as th
 
 from data_process import MNIST_Dataset
 from data_process.utils import stratified_split_train_valid, random_split_train_valid
-from machine import xxx, Model
+from machine import train, Model
 from models.standard_models import MNSIT_Simple
-from my_tools.tools import set_random_seed
+from my_tools.python_tools import set_random_seed
 from visualization.utils import show_mpl_grid
 
 
@@ -39,7 +39,7 @@ model = Model().cuda()
 # optimizer = th.optim.Adam(model.parameters(), lr=3e-3)
 optimizer = th.optim.Adagrad(model.parameters(), lr=3e-3)
 loss = th.nn.NLLLoss()
-trainer = xxx(model, train_loader, val_loader, optimizer, loss)
+trainer = train(model, train_loader, val_loader, optimizer, loss)
 trainer.run(train_loader, max_epochs=100)
 
 '''
