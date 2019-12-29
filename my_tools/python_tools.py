@@ -4,14 +4,16 @@
 # md
 # --------------------------------------------------------------------------------------------------------
 import random
+from datetime import datetime
 from math import sqrt, ceil
 from pathlib import Path
-from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
 
 
+# COMMON
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -29,19 +31,10 @@ def now_str(pattern='yyyymmdd_hhmmss'):
         datetime string in the format
     """
     # Todo: make more generic
-    # Todo: check print(f'{now:%Y-%m-%d %H:%M}')
-    '''
-    Using the following:
-    char_counts = {}
-    for c in pattern:
-        char_counts[c] = char_counts.get(c, 0) + 1 # if c not a key in char_counts, create it with value0, otherwise add 1
-
-    '''
 
     now = datetime.now()
-
-    if pattern == 'yyyymmdd_hhmmss': return f'{now.year}{now.month}{now.day}_{now.hour}{now.minute}{now.second}'
-
+    if pattern == 'yyyymmdd_hhmmss': return f'{now:%Y%m%d_%H%M%S}'
+    if pattern == 'yymmdd_hhmmss': return f'{now:%y%m%d_%H%M%S}'
     return 'Pattern not implemented!'
 
 
@@ -60,6 +53,7 @@ def print_file(txt, file=None, append=True):
     if file: print(txt, file=open(file, mode))
 
 
+# CHARTING
 def show_mpl_grid(images, titles=None, figsize=(10, 7), gridshape=(0, 0), cm='gray'):
     # Todo: have this accept a list, np.array or tensor of images. Have different functions for that?
     # Todo: change name to mpl_show_grid? mlp_show_batch?
@@ -96,6 +90,7 @@ def show_mpl_grid(images, titles=None, figsize=(10, 7), gridshape=(0, 0), cm='gr
     plt.close()
 
 
+# DISK OPERATIONS
 def create_path(path: str):
     """
     Creates a path if it doesn't already exists
@@ -109,5 +104,4 @@ def copy_file():
 
 
 if __name__ == '__main__':
-    print(now_str())
-    create_path('./xxx')
+    pass
