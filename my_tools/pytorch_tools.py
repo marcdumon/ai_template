@@ -4,9 +4,10 @@
 # md
 # --------------------------------------------------------------------------------------------------------
 from copy import deepcopy
+
+import pandas as pd
 import torch as th
 from sklearn.model_selection import train_test_split
-import pandas as pd
 
 from my_tools.python_tools import print_file
 
@@ -14,11 +15,13 @@ from my_tools.python_tools import print_file
 # MODELS
 def set_requires_grad(model, names, requires_grad):
     """
-    Set the requires_grad on parameters from model based on in_name
+    Set the requires_grad on parameters from model based on name
+
     Args:
-        model:
-        names: str, int of list[str]
-        requires_grad: bool
+        model: model containing parameters that need to set requires_grad
+        names: (str, int of list[str]) Parameter name or part of a parameter name.
+            If part, then all parameters with that part in their name will have requires_grad set.
+        requires_grad: (bool) Sets the requires_grad of the parameter
     """
     if isinstance(names, str): names = [names]
     if isinstance(names, int): names = [str(names)]
@@ -29,20 +32,23 @@ def set_requires_grad(model, names, requires_grad):
             print_file(f'\t{name:40}: {requires_grad}')
 
 
-def set_lr(model, name, lr):
+def set_lr(model, names, lr):
     """
     Sets the learning rate for parameters defined by name to be used in optimizers
-
     Args:
-        model:
-        name: the lr will be set to all model parameters that contain name in their names.
-        lr: learning rate for the parameter
+        model: model containing parameters that need to set requires_grad
+        names: (str, int of list[str]) Parameter name or part of a parameter name.
+            If part, then all parameters with that part in their name will have lr set.
+        lr: learning rate for the parameter(s)
 
     Returns:
-        List of dictionaries of the form [{'params': ???, 'lr': lr}, ...]
+        List of dictionaries of the form [{'params': param, 'lr': lr}, ...] to be used in optimizer
     """
-    state_dict = model.state_dict()
-    params = [{'name':n,'params': p, 'lr': lr} for n, p in model.named_parameters() if name in n] # name added for debugging
+    if isinstance(names, str): names = [names]
+    if isinstance(names, int): names = [str(names)]
+    params = []
+    for name in names:
+        params += [{'name': n, 'params': p, 'lr': lr} for n, p in model.named_parameters() if name in n]  # name added for debugging
     return params
 
 
