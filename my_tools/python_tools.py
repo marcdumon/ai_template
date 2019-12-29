@@ -29,7 +29,7 @@ def now_str(pattern='yyyymmdd_hhmmss'):
         datetime string in the format
     """
     # Todo: make more generic
-    # Todo: chack print(f'{now:%Y-%m-%d %H:%M}')
+    # Todo: check print(f'{now:%Y-%m-%d %H:%M}')
     '''
     Using the following:
     char_counts = {}
