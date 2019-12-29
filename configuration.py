@@ -53,8 +53,6 @@ Why using dataclass iso dictionary ?
 
 # Todo: Create a dataclass for modelparameters
 # Todo: Make an abstract base dataclass
-
-
 @dataclass
 class Config:
     """Dataclass with all configuration parameters."""
@@ -75,14 +73,16 @@ class Config:
     def save_default_yaml():
         default_rcp = Config().save_yaml(cfg.default_config_file)
 
-    def save_yaml(self, file=f'{checkpoint_path}config.yml'):
+    def save_yaml(self, file=None):
+        if file is None: file = f'{cfg.checkpoint_path}config.yml'
         with open(file, 'w') as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
         return self
 
     @classmethod
-    def load_yaml(cls, file=f'{checkpoint_path}config.yml'):
+    def load_yaml(cls, file=None):
         """Load the recipe yaml and returns a Recipe dataclass"""
+        if file is None: file = f'{cfg.checkpoint_path}config.yml'
         try:
             with open(file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
@@ -93,7 +93,6 @@ class Config:
 
 
 cfg = Config()
-original_cfg = Config()
 
 
 @dataclass()
@@ -108,7 +107,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     bs: int = 64
     lr: float = 3e-3
-    lr_frac: List[int] = field(default_factory=lambda: [1])  # By how much the lr will be devided
+    lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
 
     shuffle_batch: bool = True
@@ -126,14 +125,18 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     def save_default_yaml():
         default_rcp = Recipe().save_yaml(cfg.default_recipe_file)
 
-    def save_yaml(self, file=f'{cfg.checkpoint_path}rcp_{experiment}_{stage}.yml'):
+    def save_yaml(self, file=None):
+        if file is None:
+            file = f'{cfg.checkpoint_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
         with open(file, 'w') as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
         return self
 
     @classmethod
-    def load_yaml(cls, file=f'{cfg.checkpoint_path}rcp_{experiment}_{stage}.yml'):
+    def load_yaml(cls, file=None):
         """Load the recipe yaml and returns a Recipe dataclass"""
+        if file is None:
+            file = f'{cfg.checkpoint_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
         try:
             with open(file, 'r') as f:
                 recipe = yaml.load(f, Loader=yaml.FullLoader)
@@ -145,9 +148,6 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
 
 rcp = Recipe()
-original_rcp = Recipe()  # to know if it was changes; there is a small probability that original_rcp.creation_time != rcp.creation_time
 
 if __name__ == '__main__':
-    print(cfg)
-    print(rcp)
-    print(original_rcp)
+    pass
