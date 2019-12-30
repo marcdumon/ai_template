@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch as th
 from sklearn.model_selection import train_test_split
+from torch.utils.tensorboard import SummaryWriter
 
 from my_tools.python_tools import print_file
 
@@ -227,3 +228,18 @@ def summary(model, input_size, batch_size=-1, device="cuda", to_file=None):
     print_file("Params size (MB): %0.2f" % total_params_size, to_file)
     print_file("Estimated Total Size (MB): %0.2f" % total_size, to_file)
     print_file("--------------------------------------------------------------------------", to_file)
+
+
+def create_tb_summary_writer(model, data_loader, log_dir):
+    """
+    Creates tensorboard summary writer, adds the model's graph to tensorboard and returns the writer
+    """
+    writer = SummaryWriter(log_dir)
+    data_loader_iter = iter(data_loader)
+    x, y = next(data_loader_iter)
+    x, y = x.to('cuda'), y.to('cuda')
+    try:
+        writer.add_graph(model, x)
+    except Exception as e:
+        print("Failed to save model graph: {}".format(e))
+    return writer
