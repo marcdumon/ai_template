@@ -19,12 +19,11 @@ The following datasets have currently been implemented:
 
 import shutil
 from pathlib import Path
-import numpy as np
 
+import numpy as np
+import pandas as pd
 from skimage import io
 from torch.utils.data import Dataset
-import matplotlib.pyplot as plt
-import pandas as pd
 
 __all__ = ['MNIST_Dataset']
 
@@ -111,6 +110,7 @@ class Standard_Dataset(Dataset):
         """
         df = pd.DataFrame({'data': self.data, 'targets': self.targets})
         df.to_csv(file)
+
 
 class MNIST_Dataset(Standard_Dataset):
     """

@@ -18,6 +18,3 @@ Needs to store:
     - best, last x models
     - tensorboard logs
 '''
-
-
-

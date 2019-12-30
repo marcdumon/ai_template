@@ -30,11 +30,11 @@ def now_str(pattern='yyyymmdd_hhmmss'):
     Return:
         datetime string in the format
     """
-    # Todo: make more generic
-
     now = datetime.now()
     if pattern == 'yyyymmdd_hhmmss': return f'{now:%Y%m%d_%H%M%S}'
     if pattern == 'yymmdd_hhmmss': return f'{now:%y%m%d_%H%M%S}'
+    if pattern == 'yyyy-mm-dd hh:mm:ss': return f'{now:%Y-%m-%d %H:%M:%S}'
+    if pattern == 'mm-dd hh:mm:ss': return f'{now:%m-%d %H:%M:%S}'
     return 'Pattern not implemented!'
 
 

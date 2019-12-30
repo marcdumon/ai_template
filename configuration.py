@@ -8,10 +8,7 @@
 Manages the configuration of the environemet and the recipe for running the machine.
 It reads a yaml files into dataclasses.
 """
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
-from pprint import pprint
-from time import sleep
+from dataclasses import dataclass, field
 from typing import List
 
 import yaml
@@ -105,7 +102,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     stage: int = 1
     seed: int = 19640601
 
-    bs: int = 8*64
+    bs: int = 8 * 64
     lr: float = 3e-3
     lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
@@ -116,11 +113,11 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
     tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
+
     # summary_file: str = f'{cfg.log_path}summary_{stage}.txt'
     @property
     def summary_file(self):
         return f'{cfg.log_path}summary_{self.stage}.txt'
-
 
     def __post_init__(self):
         self.creation_time = now_str('yyyymmdd_hhmmss')
