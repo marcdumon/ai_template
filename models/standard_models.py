@@ -10,7 +10,6 @@ A collection of Pytorch models
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision as thv
 
 # Todo: Put the model parameters
 # checkout:
