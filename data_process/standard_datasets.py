@@ -24,6 +24,7 @@ import numpy as np
 from skimage import io
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
+import pandas as pd
 
 __all__ = ['MNIST_Dataset']
 
@@ -64,6 +65,8 @@ class Standard_Dataset(Dataset):
             self.path = _dataset_path / 'test'
         else:  # test and sample:
             self.path = _dataset_path / 'test_sample'
+        self.data = None
+        self.targets = None
 
     @classmethod
     def create_samples(cls, n_images, ext='png', test=False, delete=True):
@@ -102,6 +105,12 @@ class Standard_Dataset(Dataset):
             shutil.copy(str(f), str(destin_path / f.name))
         print(f"Created {n_images} images in {destin_path}")
 
+    def save_csv(self, file):
+        """
+        Saves the dataset into a csv file with columns [data,targets]
+        """
+        df = pd.DataFrame({'data': self.data, 'targets': self.targets})
+        df.to_csv(file)
 
 class MNIST_Dataset(Standard_Dataset):
     """

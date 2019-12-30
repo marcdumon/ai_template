@@ -105,7 +105,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     stage: int = 1
     seed: int = 19640601
 
-    bs: int = 64
+    bs: int = 8*64
     lr: float = 3e-3
     lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
