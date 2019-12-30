@@ -40,7 +40,7 @@ def run_training(model, train, valid, optimizer, loss):
                                     ])
     train.transform, valid.transform = transform, transform
     train.save_csv(f'{cfg.log_path}train_df_{rcp.stage}.csv')
-    valid.save_csv(f'{cfg.log_path}train_df_{rcp.stage}.csv')
+    valid.save_csv(f'{cfg.log_path}valid_df_{rcp.stage}.csv')
     train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
 
@@ -70,9 +70,11 @@ def run_training(model, train, valid, optimizer, loss):
         v_avg_acc = v_metrics['accuracy']
         v_avg_nll = v_metrics['nll']
         print()
-        print_file(f'{now_str()} Ep:{engine.state.epoch:3}  '
-                   f'Avg accuracy: {t_avg_acc:.5f}/{v_avg_acc:.5f}   '
-                   f'Avg loss: {t_avg_nll:.5f}/{v_avg_nll:.5f}', f'{cfg.log_path}train_log_{rcp.stage}.txt')
+        print_file(f'{now_str("mm-dd hh:mm:ss")} |'
+                   f'Ep:{engine.state.epoch:3} | '
+                   f'Avg accuracy: {t_avg_acc:.5f}/{v_avg_acc:.5f} |  '
+                   f'Avg loss: {t_avg_nll:.5f}/{v_avg_nll:.5f} | ',
+                   f'{cfg.log_path}train_log_{rcp.stage}.txt')
         tb_writer.add_scalar("train/loss", t_avg_nll, engine.state.epoch)
         tb_writer.add_scalar("valid/loss", v_avg_nll, engine.state.epoch)
         tb_writer.add_scalar("train/acc", t_avg_acc, engine.state.epoch)
