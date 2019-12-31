@@ -37,7 +37,7 @@ class Model(nn.Module):
 
 
 def run_training(model, train, valid, optimizer, loss):
-    # DATA
+    # Data
     transform = transforms.Compose([transforms.ToPILImage(),
                                     # transforms.Resize(10),
                                     transforms.ToTensor(),
@@ -67,7 +67,6 @@ def run_training(model, train, valid, optimizer, loss):
                                                               'precision': Precision(average=True),
                                                               'recall': Recall(average=True),
                                                               'topK': TopKCategoricalAccuracy()}, device='cuda')
-    load_checkpoint = True
 
     # Tensorboard
     tb_logger = TensorboardLogger(log_dir=f'{rcp.tb_logdir}/{now_str()}')
@@ -139,6 +138,7 @@ def run_training(model, train, valid, optimizer, loss):
                             global_step_transform=global_step_from_engine(trainer))
     v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
 
+    load_checkpoint = False
     if load_checkpoint:  # Todo: Activate via configuration.py or function?
         resume_epoch = 9
         cp = 'best_checkpoint_9_val_loss=-0.8643772215942542.pth'
@@ -152,7 +152,6 @@ def run_training(model, train, valid, optimizer, loss):
         def resume_training(engine):
             engine.state.iteration = (resume_epoch - 1) * len(engine.state.dataloader)
             engine.state.epoch = resume_epoch - 1
-
 
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
