@@ -10,7 +10,7 @@ from ignite.contrib.handlers.tensorboard_logger import OutputHandler, Tensorboar
     GradsHistHandler
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events, engine, Engine, _prepare_batch
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver, global_step_from_engine
-from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy
+from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
 from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -22,6 +22,8 @@ from models.standard_models import MNSIT_Simple
 from my_tools.python_tools import print_file, now_str
 from my_tools.pytorch_tools import create_tb_summary_writer
 import torchvision as thv
+
+from visualization.confusion_matrix import pretty_plot_confusion_matrix
 
 
 class Model(nn.Module):
@@ -67,7 +69,10 @@ def run_training(model, train, valid, optimizer, loss):
                                                               'nll': Loss(loss),
                                                               'precision': Precision(average=True),
                                                               'recall': Recall(average=True),
-                                                              'topK': TopKCategoricalAccuracy()}, device='cuda')
+                                                              'topK': TopKCategoricalAccuracy(),
+                                                              'conf_mat': ConfusionMatrix(num_classes=len(valid.classes), average=None),
+                                                              'conf_mat_avg': ConfusionMatrix(num_classes=len(valid.classes), average='samples')
+                                                              }, device='cuda')
 
     # Tensorboard
     tb_logger = TensorboardLogger(log_dir=f'{rcp.tb_logdir}/{now_str()}')
@@ -103,7 +108,7 @@ def run_training(model, train, valid, optimizer, loss):
         v_avg_prec = v_metrics['precision']
         v_avg_rec = v_metrics['recall']
         v_topk = v_metrics['topK']
-        lr_scheduler.step(v_avg_nll)
+        lr_scheduler.step(v_avg_nll)  # ReduceLROnPlateau
         print()
         print_file(f'{now_str("mm-dd hh:mm:ss")} |'
                    f'Ep:{engine.state.epoch:3} | '
@@ -113,7 +118,6 @@ def run_training(model, train, valid, optimizer, loss):
                    f'rec: {t_avg_rec:.5f}/{v_avg_rec:.5f} |'
                    f'topK: {t_topk:.5f}/{v_topk:.5f} |',
                    f'{cfg.log_path}train_log_{rcp.stage}.txt')
-
         tb_logger.writer.add_scalar("0_train/acc", t_avg_acc, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/loss", t_avg_nll, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/prec", t_avg_prec, engine.state.epoch)
@@ -126,6 +130,14 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.add_scalar("0_valid/rec", v_avg_rec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/topK", v_topk, engine.state.epoch)
         tb_logger.writer.flush()
+
+        # Confusion Matrix
+        cm=v_metrics['conf_mat']
+        cm_df=pd.DataFrame(cm.numpy(), index=valid.classes,columns=valid.classes)
+        pretty_plot_confusion_matrix(cm_df,f'xxx_{trainer.state.epoch}.png',False)
+
+
+
 
     # TEST IMAGES
     images, labels = next(iter(train_loader))
