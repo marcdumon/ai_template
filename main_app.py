@@ -28,7 +28,7 @@ rcp.stage = 1
 rcp.max_epochs = 200
 rcp.lr = 1e-3
 rcp.lr_frac = [1, 77]
-rcp.bs=8
+rcp.bs=32
 set_requires_grad(model, 'all', True)
 params = set_lr(model, ['fc1', 'fc2'], rcp.lr / rcp.lr_frac[0])
 params += set_lr(model, ['conv1', 'conv2'], rcp.lr / rcp.lr_frac[1])
