@@ -17,8 +17,8 @@ set_random_seed(rcp.seed)
 mnist_ds = MNIST_Dataset(sample=False)
 
 train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
-# train.data = train.data[:114]
-# train.targets = train.targets[:114]
+train.data = train.data[:114]
+train.targets = train.targets[:114]
 
 # Model
 model = Model().to('cuda')  # Model should be on gpu before putting parametyers in optimizer
