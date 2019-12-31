@@ -21,6 +21,7 @@ from configuration import rcp, cfg
 from models.standard_models import MNSIT_Simple
 from my_tools.python_tools import print_file, now_str
 from my_tools.pytorch_tools import create_tb_summary_writer
+import torchvision as thv
 
 
 class Model(nn.Module):
@@ -75,7 +76,6 @@ def run_training(model, train, valid, optimizer, loss):
     tb_logger.attach(trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED)
     tb_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED)
     tb_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED)
-    tb_logger.close()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=10))
     def log_tenserboard(engine):
@@ -126,6 +126,14 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.add_scalar("0_valid/rec", v_avg_rec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/topK", v_topk, engine.state.epoch)
         tb_logger.writer.flush()
+
+    # TEST IMAGES
+    images, labels = next(iter(train_loader))
+    images = images.to('cuda')
+    grid = thv.utils.make_grid(images)
+    tb_logger.writer.add_image('images', grid, 0)
+    # tb_logger.writer.add_graph(model, images)
+    tb_logger.writer.close()
 
     # Checkpoint
     def score_function(engine):
