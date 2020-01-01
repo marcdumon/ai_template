@@ -9,7 +9,7 @@ import torch.nn as nn
 from ignite.contrib.handlers.tensorboard_logger import OutputHandler, TensorboardLogger, WeightsHistHandler, OptimizerParamsHandler, WeightsScalarHandler, GradsScalarHandler, \
     GradsHistHandler
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events, engine, Engine, _prepare_batch
-from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver, global_step_from_engine, EarlyStopping
 from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
 from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
@@ -20,7 +20,7 @@ from tqdm import tqdm
 from configuration import rcp, cfg
 from models.standard_models import MNSIT_Simple
 from my_tools.python_tools import print_file, now_str
-from my_tools.pytorch_tools import create_tb_summary_writer
+from my_tools.pytorch_tools import create_tb_summary_writer, DeNormalize
 import torchvision as thv
 
 from visualization.confusion_matrix import pretty_plot_confusion_matrix
@@ -43,6 +43,8 @@ def run_training(model, train, valid, optimizer, loss):
     # Data
     transform = transforms.Compose([transforms.ToPILImage(),
                                     # transforms.Resize(10),
+                                    # transforms.RandomVerticalFlip(.5),
+                                    # transforms.RandomHorizontalFlip(.5),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.1307,), (0.3081,))
                                     ])
@@ -52,11 +54,6 @@ def run_training(model, train, valid, optimizer, loss):
     train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     print(f'# batches: train: {len(train_loader)}, valid: {len(valid_loader)}')
-
-    # Schelulers
-    # lr_scheduler = ExponentialLR(optimizer, gamma=0.975)
-    # trainer.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step())
-    lr_scheduler = ReduceLROnPlateau(optimizer, patience=5, verbose=True)
 
     # Engines
     trainer = create_supervised_trainer(model, optimizer, loss, device='cuda')
@@ -81,6 +78,52 @@ def run_training(model, train, valid, optimizer, loss):
     tb_logger.attach(trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED)
     tb_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED)
     tb_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED)
+
+    def score_function(engine):
+        # score = -1 * engine.state.metrics['nll']
+        score = engine.state.metrics['accuracy']
+        return score
+
+    # Schelulers
+    # lr_scheduler = ExponentialLR(optimizer, gamma=0.975)
+    # trainer.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step())
+    lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, factor=.5, min_lr=1e-7, verbose=True)
+    es_handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
+    v_evaluator.add_event_handler(Events.COMPLETED, es_handler)
+
+    # Checkpoint
+    to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+    checkpoint = Checkpoint(to_save, DiskSaver('./test_cp', require_empty=False, create_dir=True),
+                            n_saved=4, filename_prefix='best',
+                            score_function=score_function, score_name="val_acc",
+                            global_step_transform=global_step_from_engine(trainer))
+    v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
+    load_checkpoint = False
+    if load_checkpoint:  # Todo: Activate via configuration.py or function?
+        resume_epoch = 9
+        cp = 'best_checkpoint_9_val_loss=-0.8643772215942542.pth'
+        obj = th.load(f'./test_cp/{cp}')
+        # model.load_state_dict(obj['model'])
+        # optimizer.load_state_dict(obj['optimizer'])
+        # lr_scheduler.load_state_dict(obj['lr_scheduler'])
+        Checkpoint.load_objects(to_load, obj)
+
+        @trainer.on(Events.STARTED)
+        def resume_training(engine):
+            engine.state.iteration = (resume_epoch - 1) * len(engine.state.dataloader)
+            engine.state.epoch = resume_epoch - 1
+
+    @trainer.on(Events.STARTED)
+    def show_batch_images(engine):
+        images, labels = next(iter(train_loader))
+        denormalize = DeNormalize((0.1307,), (0.3081,))
+        for i in range(len(images)):
+            images[i] = denormalize(images[i])
+        images = images.to('cuda')
+        grid = thv.utils.make_grid(images)
+        tb_logger.writer.add_image('images', grid, 0)
+        tb_logger.writer.add_graph(model, images)
+        tb_logger.writer.flush()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=10))
     def log_tenserboard(engine):
@@ -132,46 +175,11 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.flush()
 
         # Confusion Matrix
-        cm=v_metrics['conf_mat']
-        cm_df=pd.DataFrame(cm.numpy(), index=valid.classes,columns=valid.classes)
-        pretty_plot_confusion_matrix(cm_df,f'xxx_{trainer.state.epoch}.png',False)
+        cm = v_metrics['conf_mat']
+        cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
+        pretty_plot_confusion_matrix(cm_df, f'xxx_{trainer.state.epoch}.png', False)
 
-
-
-
-    # TEST IMAGES
-    images, labels = next(iter(train_loader))
-    images = images.to('cuda')
-    grid = thv.utils.make_grid(images)
-    tb_logger.writer.add_image('images', grid, 0)
-    # tb_logger.writer.add_graph(model, images)
-    tb_logger.writer.close()
-
-    # Checkpoint
-    def score_function(engine):
-        return -1 * engine.state.metrics['nll']
-
-    to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-    checkpoint = Checkpoint(to_save, DiskSaver('./test_cp', require_empty=False, create_dir=True),
-                            n_saved=4, filename_prefix='best',
-                            score_function=score_function, score_name="val_loss",
-                            global_step_transform=global_step_from_engine(trainer))
-    v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
-
-    load_checkpoint = False
-    if load_checkpoint:  # Todo: Activate via configuration.py or function?
-        resume_epoch = 9
-        cp = 'best_checkpoint_9_val_loss=-0.8643772215942542.pth'
-        obj = th.load(f'./test_cp/{cp}')
-        # model.load_state_dict(obj['model'])
-        # optimizer.load_state_dict(obj['optimizer'])
-        # lr_scheduler.load_state_dict(obj['lr_scheduler'])
-        Checkpoint.load_objects(to_load, obj)
-
-        @trainer.on(Events.STARTED)
-        def resume_training(engine):
-            engine.state.iteration = (resume_epoch - 1) * len(engine.state.dataloader)
-            engine.state.epoch = resume_epoch - 1
+    # Show some misclassified images in Tensorboard
 
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
