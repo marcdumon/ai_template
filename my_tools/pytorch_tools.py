@@ -11,7 +11,7 @@ import pandas as pd
 import torch as th
 from sklearn.model_selection import train_test_split
 from torch.utils.tensorboard import SummaryWriter
-
+import torchvision as thv
 from my_tools.python_tools import print_file
 
 
@@ -243,3 +243,18 @@ def create_tb_summary_writer(model, data_loader, log_dir):
     except Exception as e:
         print("Failed to save model graph: {}".format(e))
     return writer
+
+
+class DeNormalize(thv.transforms.Normalize):
+    """
+    Undoes the normalization and returns the reconstructed images in the input domain.
+    """
+
+    def __init__(self, mean, std):
+        mean = th.as_tensor(mean)
+        std_inv = th.as_tensor(1.)/(th.as_tensor(std)+1e-7)
+        mean_inv = -mean * std_inv
+        super().__init__(mean=mean_inv, std=std_inv)
+
+    def __call__(self, tensor):
+        return super().__call__(tensor.clone())
