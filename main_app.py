@@ -17,15 +17,15 @@ set_random_seed(rcp.seed)
 mnist_ds = MNIST_Dataset(sample=False)
 
 train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
-train.data = train.data[:114]
-train.targets = train.targets[:114]
+train.data = train.data[:24]
+train.targets = train.targets[:24]
 
 # Model
 model = Model().to('cuda')  # Model should be on gpu before putting parametyers in optimizer
 
 # Stage 1
 rcp.stage = 1
-rcp.max_epochs = 200
+rcp.max_epochs = 100
 rcp.lr = 1e-3
 rcp.lr_frac = [1, 77]
 rcp.bs=32
@@ -36,7 +36,7 @@ optimizer = th.optim.Adam(params=params, lr=1e999)
 loss = th.nn.NLLLoss()
 summary(model, (1, 28, 28), batch_size=rcp.bs, device='cuda', to_file=rcp.summary_file)
 run_training(model, train=train, valid=valid, optimizer=optimizer, loss=loss)
-
+1/0
 # Stage 2
 rcp.stage = 2
 rcp.max_epochs = 2

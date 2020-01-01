@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 from skimage import io
 from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
 
 __all__ = ['MNIST_Dataset']
 
