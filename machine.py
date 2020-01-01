@@ -24,6 +24,7 @@ from my_tools.pytorch_tools import create_tb_summary_writer, DeNormalize
 import torchvision as thv
 
 from visualization.confusion_matrix import pretty_plot_confusion_matrix
+from visualization.make_graphviz_graph import make_dot
 
 
 class Model(nn.Module):
@@ -54,6 +55,11 @@ def run_training(model, train, valid, optimizer, loss):
     train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     print(f'# batches: train: {len(train_loader)}, valid: {len(valid_loader)}')
+
+    # Save the graph.gv
+    dot = make_dot(model(next(iter(train_loader))[0].to('cuda')), params=dict(model.named_parameters()))
+    dot.render(f'{rcp.experiment}_graph_{rcp.stage}','./', format='png')
+
 
     # Engines
     trainer = create_supervised_trainer(model, optimizer, loss, device='cuda')
