@@ -4,6 +4,9 @@
 # md
 # --------------------------------------------------------------------------------------------------------
 
+# Heavily inspired by https://github.com/wcipriano/pretty-print-confusion-matrix
+
+
 """
 plot a pretty confusion matrix with seaborn
 Created on Mon Jun 25 14:17:37 2018
@@ -34,7 +37,7 @@ def get_new_fig(fn, figsize=None):
     return fig1, ax1
 
 
-def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, fmt, show_null_values=0):
+def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, fmt, show_null_values=False):
     """
       config cell text and colors
       and return text elements to add and to dell
@@ -73,7 +76,7 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
         text_del.append(oText)
 
         # text to ADD
-        font_prop = fm.FontProperties(weight='bold', size=fz)
+        font_prop = fm.FontProperties(weight='normal', size=fz)
         text_kwargs = dict(color='w', ha="center", va="center", gid='sum', fontproperties=font_prop)
         lis_txt = ['%d' % cell_val, per_ok_s, '%.2f%%' % per_err]
         lis_kwa = [text_kwargs]
@@ -94,15 +97,16 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
         carr = [0.27, 0.30, 0.27, 1.0]
         if (col == ccl - 1) and (lin == ccl - 1):
             carr = [0.17, 0.20, 0.17, 1.0]
+        carr = [.5, .5, .5, .5]
         facecolors[posi] = carr
 
     else:
         if per > 0:
             txt = '%s\n%.2f%%' % (cell_val, per)
         else:
-            if show_null_values == 0:
+            if not show_null_values:
                 txt = ''
-            elif show_null_values == 1:
+            elif show_null_values:
                 txt = '0'
             else:
                 txt = '0\n0.0%'
@@ -115,7 +119,7 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
             # set background color in the diagonal to blue
             facecolors[posi] = [0.35, 0.8, 0.55, 1.0]
         else:
-            oText.set_color('r')
+            oText.set_color([.3, .3, .4, 1.])
 
     return text_add, text_del
 
@@ -134,8 +138,8 @@ def insert_totals(df_cm):
     # print ('\ndf_cm:\n', df_cm, '\n\b\n')
 
 
-def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap='Reds', fmt='.2f', fz=9,
-                                 lw=0.5, cbar=False, figsize=None, show_null_values=0, pred_val_axis='y'):
+def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap='RdYlGn_r', fmt='.2f', fz=9,
+                                 lw=0.5, cbar=False, figsize=None, show_null_values=False, pred_val_axis='y'):
     """
       print conf matrix with default layout (like matlab)
       params:
@@ -163,8 +167,13 @@ def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap
     # this is for print allways in the same window
     fig, ax1 = get_new_fig('Conf matrix default', figsize)
 
-    # thanks for seaborn
+    # Adjust the range of cmap to exclude sums
+    vmin = df_cm.values[:-1, :-1].ravel().min()
+    vmin = 0
+    vmax = df_cm.values[:-1, :-1].ravel().max()
+    center = np.median(df_cm.values[:-1, :-1].ravel())
     ax = sn.heatmap(df_cm, annot=annot, annot_kws={"size": fz}, linewidths=lw, ax=ax1,
+                    vmin=vmin, vmax=vmax, center=center,
                     cbar=cbar, cmap=cmap, linecolor='w', fmt=fmt)
 
     # set ticklabels rotation
@@ -197,7 +206,6 @@ def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap
 
         # set text
         txt_res = configcell_text_and_colors(array_df, lin, col, t, facecolors, posi, fz, fmt, show_null_values)
-
         text_add.extend(txt_res[0])
         text_del.extend(txt_res[1])
 
@@ -217,7 +225,6 @@ def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap
         plt.savefig(fig_name)
     if show:
         plt.show()
-
 
 
 def plot_confusion_matrix_from_data(y_test, predictions, columns=None, annot=True, cmap="Oranges",
