@@ -10,21 +10,29 @@ from ignite.contrib.handlers.tensorboard_logger import OutputHandler, Tensorboar
     GradsHistHandler
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events, engine, Engine, _prepare_batch
 from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver, global_step_from_engine, EarlyStopping
-from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
+from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix, EpochMetric
+from skimage import io
 from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from configuration import rcp, cfg
+from data_process import MNIST_Dataset
 from models.standard_models import MNSIT_Simple
-from my_tools.python_tools import print_file, now_str
+from my_tools.python_tools import print_file, now_str, set_random_seed
 from my_tools.pytorch_tools import create_tb_summary_writer, DeNormalize
 import torchvision as thv
 
 from visualization.confusion_matrix import pretty_plot_confusion_matrix
 from visualization.make_graphviz_graph import make_dot
+import numpy as np
+
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 2000)
 
 
 class Model(nn.Module):
@@ -37,18 +45,20 @@ class Model(nn.Module):
     def forward(self, x):
         x = self.cnn(x)
         # x=self.resnet(x)
+
         return x
 
 
 def run_training(model, train, valid, optimizer, loss):
     # Data
-    transform = transforms.Compose([transforms.ToPILImage(),
-                                    # transforms.Resize(10),
-                                    # transforms.RandomVerticalFlip(.5),
-                                    # transforms.RandomHorizontalFlip(.5),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize((0.1307,), (0.3081,))
-                                    ])
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        # transforms.Resize(10),
+        # transforms.RandomVerticalFlip(.5),
+        # transforms.RandomHorizontalFlip(.5),
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
     train.transform, valid.transform = transform, transform
     train.save_csv(f'{cfg.log_path}train_df_{rcp.stage}.csv')
     valid.save_csv(f'{cfg.log_path}valid_df_{rcp.stage}.csv')
@@ -57,25 +67,24 @@ def run_training(model, train, valid, optimizer, loss):
     print(f'# batches: train: {len(train_loader)}, valid: {len(valid_loader)}')
 
     # Save the graph.gv
-    dot = make_dot(model(next(iter(train_loader))[0].to('cuda')), params=dict(model.named_parameters()))
-    dot.render(f'{rcp.experiment}_graph_{rcp.stage}','./', format='png')
-
+    dot = make_dot(model(next(iter(train_loader))[0].to(cfg.device)), params=dict(model.named_parameters()))
+    dot.render(f'{rcp.experiment}_graph_{rcp.stage}', './', format='png')
 
     # Engines
-    trainer = create_supervised_trainer(model, optimizer, loss, device='cuda')
+    trainer = create_supervised_trainer(model, optimizer, loss, device=cfg.device)
     t_evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(),
                                                               'nll': Loss(loss),
                                                               'precision': Precision(average=True),
                                                               'recall': Recall(average=True),
-                                                              'topK': TopKCategoricalAccuracy()}, device='cuda')
+                                                              'topK': TopKCategoricalAccuracy()}, device=cfg.device)
     v_evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(),
                                                               'nll': Loss(loss),
                                                               'precision': Precision(average=True),
                                                               'recall': Recall(average=True),
                                                               'topK': TopKCategoricalAccuracy(),
                                                               'conf_mat': ConfusionMatrix(num_classes=len(valid.classes), average=None),
-                                                              'conf_mat_avg': ConfusionMatrix(num_classes=len(valid.classes), average='samples')
-                                                              }, device='cuda')
+                                                              # 'conf_mat_avg': ConfusionMatrix(num_classes=len(valid.classes), average='samples'),
+                                                              }, device=cfg.device)
 
     # Tensorboard
     tb_logger = TensorboardLogger(log_dir=f'{rcp.tb_logdir}/{now_str()}')
@@ -125,7 +134,7 @@ def run_training(model, train, valid, optimizer, loss):
         denormalize = DeNormalize((0.1307,), (0.3081,))
         for i in range(len(images)):
             images[i] = denormalize(images[i])
-        images = images.to('cuda')
+        images = images.to(cfg.device)
         grid = thv.utils.make_grid(images)
         tb_logger.writer.add_image('images', grid, 0)
         tb_logger.writer.add_graph(model, images)
@@ -135,10 +144,25 @@ def run_training(model, train, valid, optimizer, loss):
     def log_tenserboard(engine):
         tb_logger.writer.add_scalar("batch/train/loss", engine.state.output, engine.state.iteration)
 
-    # Print
     @trainer.on(Events.ITERATION_COMPLETED(every=int(1 + len(train_loader) / 100)))
     def print_dash(engine):
         print('-', sep='', end='', flush=True)
+
+    @trainer.on(Events.EPOCH_COMPLETED(every=1))
+    def get_top_losses(engine, k=6):  # Todo: make this much better
+        nll_loss = nn.NLLLoss(reduction='none')
+        df = predict_dataset(model, valid, nll_loss, transform, bs=rcp.bs * 10, device=cfg.device)
+        df.sort_values('loss', ascending=False, inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        for i, row in df.iterrows():
+            img = io.imread(row['fname'], as_gray=False)
+            img = th.as_tensor(img[np.newaxis, :, :])  # add C
+            tag = f'TopLoss_{engine.state.epoch}/{row.loss:.4f}/{row.target}/{row.pred}/{row.pred2}'
+            tb_logger.writer.add_image(tag, img, 0)
+            if i >= k: break
+        tb_logger.writer.flush()
+
+    valid_dl_sorted = DataLoader(valid, batch_size=rcp.bs, shuffle=False)  # Can't use valid_dl because impossible te know the indices for a batch when shuffle=True
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
@@ -185,8 +209,58 @@ def run_training(model, train, valid, optimizer, loss):
         cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
         pretty_plot_confusion_matrix(cm_df, f'xxx_{trainer.state.epoch}.png', False)
 
-    # Show some misclassified images in Tensorboard
-
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
     return trainer
+
+
+def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device='cuda'):
+    """
+    Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
+    """
+    if transform:
+        dataset.transform = transform
+    else:
+        dataset.transform = transforms.Compose([
+            transforms.ToPILImage(),
+            # transforms.Resize(10),
+            # transforms.RandomVerticalFlip(.5),
+            # transforms.RandomHorizontalFlip(.5),
+            transforms.ToTensor(),  # (H x W x C) in the range [0, 255] -> (C x H x W) in the range [0.0, 1.0]
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+    dataloader = DataLoader(dataset, bs, shuffle=False, num_workers=8)
+    df = pd.DataFrame()
+    df['fname'] = dataset.data
+    df['target'] = dataset.targets
+    model.to(device)
+    loss = []
+    pred = []
+    pred2=[]
+    for image, target in dataloader:
+        model.eval()
+        with th.no_grad():
+            image, target = image.to(device), target.to(device)
+            logits = model(image)
+            l = loss_fn(logits, target)
+            p = th.argmax(logits, dim=1)
+            p2 = th.topk(logits, 2, dim=1)  # 2nd argmax
+            p2 = p2.indices[:, 1]
+            loss += list(l.to('cpu').numpy())
+            pred += list(p.to('cpu').numpy())
+            pred2+=list(p2.to('cpu').numpy())
+    df['loss'] = loss
+    df['pred'] = pred
+    df['pred2'] = pred2
+    return df
+
+
+if __name__ == '__main__':
+    set_random_seed(rcp.seed)
+    loss_fn = nn.NLLLoss(reduction='none')
+    m = Model()
+    ds = MNIST_Dataset(sample=True)
+    ds.data = ds.data
+    ds.targets = ds.targets
+    x = predict_dataset(m, ds, loss_fn, bs=2)
+    print(x)
