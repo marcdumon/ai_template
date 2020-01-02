@@ -3,6 +3,8 @@ Short Term:
 - [Tensorboard tutorial:](https://pytorch.org/tutorials/intermediate/tensorboard_tutorial.html)
 - use \_\_init\_\_.py to have better imports elsewhere? See: [why would I put python code in __init__.py files
 - sanity checking before training to catch crashes early
+- show top losses
+- what is TopKCategoricalAccuracy
 
 
  

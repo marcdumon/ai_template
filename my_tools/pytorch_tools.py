@@ -237,7 +237,7 @@ def create_tb_summary_writer(model, data_loader, log_dir):
     writer = SummaryWriter(log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
-    x, y = x.to('cuda'), y.to('cuda')
+    x, y = x.to('cuda'), y.to('cuda') # Todo: Make more generic
     try:
         writer.add_graph(model, x)
     except Exception as e:

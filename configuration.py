@@ -60,7 +60,7 @@ class Config:
     checkpoint_path: str = './'
     tb_basedir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
     log_path: str = './'
-
+    device = 'cuda'
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     def __post_init__(self):

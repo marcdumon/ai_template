@@ -144,6 +144,10 @@ class MNIST_Dataset(Standard_Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img, target  # Todo: is it not better to use a dict iso tuple? In dict, we easily can add other (meta)data
+        #                       But with a dictionary we can't do image, label = next(iter(dataloader))
+        #                     Todo: Add index to return img, target. Otherwise it's impossible to know which images are in dataloader batch
+        #                           See: https://discuss.pytorch.org/t/how-to-retrieve-the-sample-indices-of-a-mini-batch/7948
+        #                           but Ignite expect to have 2 values, not 3.
 
 
 if __name__ == '__main__':
