@@ -53,6 +53,7 @@ def run_training(model, train, valid, optimizer, loss):
     # Data
     transform = transforms.Compose([
         transforms.ToPILImage(),
+        # transforms.RandomRotation(90),
         # transforms.Resize(10),
         # transforms.RandomVerticalFlip(.5),
         # transforms.RandomHorizontalFlip(.5),
@@ -79,8 +80,10 @@ def run_training(model, train, valid, optimizer, loss):
                                                               'topK': TopKCategoricalAccuracy()}, device=cfg.device)
     v_evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(),
                                                               'nll': Loss(loss),
-                                                              'precision': Precision(average=True),
-                                                              'recall': Recall(average=True),
+                                                              'precision_avg': Precision(average=True),
+                                                              # 'precision': Precision(average=False),
+                                                              'recall_avg': Recall(average=True),
+                                                              # 'recall': Recall(average=False),
                                                               'topK': TopKCategoricalAccuracy(),
                                                               'conf_mat': ConfusionMatrix(num_classes=len(valid.classes), average=None),
                                                               # 'conf_mat_avg': ConfusionMatrix(num_classes=len(valid.classes), average='samples'),
@@ -148,8 +151,8 @@ def run_training(model, train, valid, optimizer, loss):
     def print_dash(engine):
         print('-', sep='', end='', flush=True)
 
-    @trainer.on(Events.EPOCH_COMPLETED(every=1))
-    def get_top_losses(engine, k=6):  # Todo: make this much better
+    @trainer.on(Events.EPOCH_COMPLETED(every=5))
+    def get_top_losses(engine, k=6):
         nll_loss = nn.NLLLoss(reduction='none')
         df = predict_dataset(model, valid, nll_loss, transform, bs=rcp.bs * 10, device=cfg.device)
         df.sort_values('loss', ascending=False, inplace=True)
@@ -178,16 +181,16 @@ def run_training(model, train, valid, optimizer, loss):
         v_metrics = v_evaluator.state.metrics
         v_avg_acc = v_metrics['accuracy']
         v_avg_nll = v_metrics['nll']
-        v_avg_prec = v_metrics['precision']
-        v_avg_rec = v_metrics['recall']
+        v_avg_prec = v_metrics['precision_avg']
+        v_avg_rec = v_metrics['recall_avg']
         v_topk = v_metrics['topK']
         lr_scheduler.step(v_avg_nll)  # ReduceLROnPlateau
-        print()
+        print(v_avg_prec)
         print_file(f'{now_str("mm-dd hh:mm:ss")} |'
                    f'Ep:{engine.state.epoch:3} | '
                    f'acc: {t_avg_acc:.5f}/{v_avg_acc:.5f} | '
                    f'loss: {t_avg_nll:.5f}/{v_avg_nll:.5f} | '
-                   f'prec: {t_avg_prec:.5f}/{v_avg_prec:.5f} | '
+                   # f'prec: {t_avg_prec:.5f}/{v_avg_prec:.5f} | '
                    f'rec: {t_avg_rec:.5f}/{v_avg_rec:.5f} |'
                    f'topK: {t_topk:.5f}/{v_topk:.5f} |',
                    f'{cfg.log_path}train_log_{rcp.stage}.txt')
@@ -202,6 +205,7 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.add_scalar("0_valid/prec", v_avg_prec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/rec", v_avg_rec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/topK", v_topk, engine.state.epoch)
+
         tb_logger.writer.flush()
 
         # Confusion Matrix
@@ -209,12 +213,72 @@ def run_training(model, train, valid, optimizer, loss):
         cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
         pretty_plot_confusion_matrix(cm_df, f'xxx_{trainer.state.epoch}.png', False)
 
+    # Tensorboard Projector
+    # helper function
+    def select_n_random(ds, n=100):
+        """Selects n random datapoints and their corresponding labels from a dataset"""
+        perm = th.randperm(len(ds))
+        perm = perm[:n]
+        imgs = th.stack([ds[i][0] for i in perm])
+        lbls = [ds[i][1] for i in perm]
+        return imgs, lbls
+
+    # select random images and their target indices
+    images, labels = select_n_random(train, 100)
+    # get the class labels for each image
+    class_labels = [train.classes[lab] for lab in labels]
+    # log embeddings
+    features = images.view(-1, images.shape[-1] * images.shape[-2])  # nx1x28x28 -> n*784
+    tb_logger.writer.add_embedding(features, metadata=class_labels, label_img=images)
+
+
+    @trainer.on(Events.COMPLETED)
+    def test(engine):
+        # 1. gets the probability predictions in a test_size x num_classes Tensor
+        # 2. gets the preds in a test_size Tensor
+        # takes ~10 seconds to run
+        class_probs = []
+        class_preds = []
+        with th.no_grad():
+            for data in valid_loader:
+                images, labels = data
+                images, labels =images.to(cfg.device), labels.to(cfg.device)
+                output = model(images)
+                class_probs_batch = [th.softmax(el, dim=0) for el in output]
+                _, class_preds_batch = th.max(output, 1)
+
+                class_probs.append(class_probs_batch)
+                class_preds.append(class_preds_batch)
+
+        test_probs = th.cat([th.stack(batch) for batch in class_probs])
+        test_preds = th.cat(class_preds)
+
+        # helper function
+        def add_pr_curve_tensorboard(class_index, test_probs, test_preds, global_step=0):
+            '''
+            Takes in a "class_index" from 0 to 9 and plots the corresponding
+            precision-recall curve
+            '''
+            tensorboard_preds = test_preds == class_index
+            tensorboard_probs = test_probs[:, class_index]
+
+            tb_logger.writer.add_pr_curve(valid.classes[class_index],
+                                tensorboard_preds,
+                                tensorboard_probs,
+                                global_step=global_step)
+            tb_logger.writer.close()
+
+        # plot all the pr curves
+        for i in range(len(valid.classes)):
+            add_pr_curve_tensorboard(i, test_probs, test_preds)
+
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
     return trainer
 
 
-def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device='cuda'):
+
+def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.device):
     """
     Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
     """
@@ -236,7 +300,7 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device='cuda
     model.to(device)
     loss = []
     pred = []
-    pred2=[]
+    pred2 = []
     for image, target in dataloader:
         model.eval()
         with th.no_grad():
@@ -244,23 +308,27 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device='cuda
             logits = model(image)
             l = loss_fn(logits, target)
             p = th.argmax(logits, dim=1)
-            p2 = th.topk(logits, 2, dim=1)  # 2nd argmax
-            p2 = p2.indices[:, 1]
+            # 2nd argmax
+            p2 = th.topk(logits, 2, dim=1)  # returns namedtuple (values, indices)
+            p2 = p2.indices[:, 1]  # second column
             loss += list(l.to('cpu').numpy())
             pred += list(p.to('cpu').numpy())
-            pred2+=list(p2.to('cpu').numpy())
+            pred2 += list(p2.to('cpu').numpy())
     df['loss'] = loss
     df['pred'] = pred
     df['pred2'] = pred2
     return df
 
 
+
+
 if __name__ == '__main__':
-    set_random_seed(rcp.seed)
-    loss_fn = nn.NLLLoss(reduction='none')
-    m = Model()
-    ds = MNIST_Dataset(sample=True)
-    ds.data = ds.data
-    ds.targets = ds.targets
-    x = predict_dataset(m, ds, loss_fn, bs=2)
-    print(x)
+    # set_random_seed(rcp.seed)
+    # loss_fn = nn.NLLLoss(reduction='none')
+    # m = Model()
+    # ds = MNIST_Dataset(sample=True)
+    # ds.data = ds.data
+    # ds.targets = ds.targets
+    # x = predict_dataset(m, ds, loss_fn, bs=2)
+    # print(x)
+    pass
