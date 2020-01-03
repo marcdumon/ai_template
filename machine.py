@@ -70,7 +70,7 @@ def run_training(model, train, valid, optimizer, loss):
 
     # Save the graph.gv
     dot = make_dot(model(next(iter(train_loader))[0].to(cfg.device)), params=dict(model.named_parameters()))
-    dot.render(f'{rcp.base_path}graph', './', format='png', cleanup=True)
+    dot.render(f'{rcp.models_path}graph', './', format='png', cleanup=True)
 
     # Engines
     trainer = create_supervised_trainer(model, optimizer, loss, device=cfg.device)
@@ -110,9 +110,9 @@ def run_training(model, train, valid, optimizer, loss):
     es_handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
     v_evaluator.add_event_handler(Events.COMPLETED, es_handler)
 
-    # Checkpoint
+    # Checkpoint # todo: also save last x models + better loss than acc?
     to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-    checkpoint = Checkpoint(to_save, DiskSaver(f'{rcp.base_path}models', require_empty=False, create_dir=True),
+    checkpoint = Checkpoint(to_save, DiskSaver(f'{rcp.models_path}', require_empty=False, create_dir=True),
                             n_saved=4, filename_prefix='best',
                             score_function=score_function, score_name="val_acc",
                             global_step_transform=global_step_from_engine(trainer))
@@ -209,9 +209,10 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.flush()
 
         # Confusion Matrix
-        cm = v_metrics['conf_mat']
-        cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
-        pretty_plot_confusion_matrix(cm_df, f'xxx_{trainer.state.epoch}.png', False)
+        if trainer.state.epoch % 5==0: # Todo: separate function + cm for last epoch
+            cm = v_metrics['conf_mat']
+            cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
+            pretty_plot_confusion_matrix(cm_df, f'{rcp.base_path}results/cm{trainer.state.epoch}.png', False)
 
     # Tensorboard Projector
     # helper function
