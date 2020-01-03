@@ -22,7 +22,7 @@ class Config:
 
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
-    report_path: str = '../reports/'
+    temp_report_path: str = '../temp_reports/'
     tb_path = '../tensorboard/'
 
     device = 'cuda'
@@ -78,7 +78,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
-    base_path: str = f'{cfg.report_path}{experiment}/{creation_time}/'
+    base_path: str = f'{cfg.temp_report_path}{experiment}/{creation_time}/'
     models_path: str = f'{base_path}models/'
     results_path: str = f'{base_path}/results/'
     src_path: str = f'{base_path}src/'
