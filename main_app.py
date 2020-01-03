@@ -9,12 +9,13 @@ from torchvision.transforms import transforms
 
 from configuration import rcp, cfg
 from data_process import MNIST_Dataset
-from machine import Model, run_training, setup_experiment
+from machine import Model, run_training, setup_experiment, close_experiment
 from my_tools.lr_finder import LRFinder
 from my_tools.python_tools import set_random_seed
 from my_tools.pytorch_tools import random_split_train_valid, set_lr, summary, set_requires_grad
 import numpy as np
 
+close_experiment('baseline', '20200103_230758')
 setup_experiment()
 set_random_seed(rcp.seed)
 # DATA

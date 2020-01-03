@@ -322,7 +322,7 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.d
 def setup_experiment():
     """
     Create directories for experiment:
-        ../reports
+        ../temp_reports
             /experiment
                 /yyyymmdd_hhmmss
                     /models
@@ -340,7 +340,18 @@ def setup_experiment():
     # remove_tree(destination)  # copy_tree can't overwrite
     copy_tree(source, destination)
 
+def close_experiment(experiment:str, datetime:str):
+    """
+    copy experiment to ../reports
+    move ../tensorboard/experiment to ../reports
+    """
+    source=f'{cfg.temp_report_path}{experiment}/{datetime}/'
+    tb_source=f'../tensorboard/{experiment}/{datetime}/'
+    destination=f'../reports/{experiment}/{datetime}/'
+    copy_tree(source, destination)
+    copy_tree(tb_source, f'{destination}tensorboard')
+
 
 if __name__ == '__main__':
-    setup_experiment()
+    # close_experiment('baseline', '20200103_230746')
     pass
