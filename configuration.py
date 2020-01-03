@@ -57,9 +57,9 @@ class Config:
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
     # checkpoint_path: str = '/media/md/Development/'
-    checkpoint_path: str = './'
+    report_path: str = '../reports/'
     tb_basedir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
-    log_path: str = './'
+
     device = 'cuda'
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
@@ -71,7 +71,7 @@ class Config:
         default_rcp = Config().save_yaml(cfg.default_config_file)
 
     def save_yaml(self, file=None):
-        if file is None: file = f'{cfg.checkpoint_path}config.yml'
+        if file is None: file = f'{rcp.base_path}cfg.yml'
         with open(file, 'w') as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
         return self
@@ -79,7 +79,7 @@ class Config:
     @classmethod
     def load_yaml(cls, file=None):
         """Load the recipe yaml and returns a Recipe dataclass"""
-        if file is None: file = f'{cfg.checkpoint_path}config.yml'
+        if file is None: file = f'{rcp.base_path}cfg.yml'
         try:
             with open(file, 'r') as f:
                 config = yaml.load(f, Loader=yaml.FullLoader)
@@ -98,7 +98,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     A dataclass with all the parameters that might vary from one experiment to the other or from one stage of an experiment
     to the other stage
     """
-    experiment: str = 'exp'
+    experiment: str = 'baseline'
     stage: int = 1
     seed: int = 19640601
 
@@ -112,12 +112,24 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     # test: Config = field(default_factory=lambda: cfg)
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
+
     tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
 
-    # summary_file: str = f'{cfg.log_path}summary_{stage}.txt'
+    @property
+    def base_path(self):
+        return f'{cfg.report_path}{self.experiment}_{self.stage}/'
+
+    @property
+    def checkpoint_path(self):
+        return f'{self.base_path}models/'
+
     @property
     def summary_file(self):
-        return f'{cfg.log_path}summary_{self.stage}.txt'
+        return f'{self.base_path}summary.txt'
+
+    @property
+    def results_path(self):
+        return f'{self.base_path}/results/'
 
     def __post_init__(self):
         self.creation_time = now_str('yyyymmdd_hhmmss')
@@ -128,7 +140,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     def save_yaml(self, file=None):
         if file is None:
-            file = f'{cfg.checkpoint_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
+            file = f'{self.base_path}rcp.yml'
         with open(file, 'w') as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
         return self
@@ -137,7 +149,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     def load_yaml(cls, file=None):
         """Load the recipe yaml and returns a Recipe dataclass"""
         if file is None:
-            file = f'{cfg.checkpoint_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
+            file = f'{cls.base_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
         try:
             with open(file, 'r') as f:
                 recipe = yaml.load(f, Loader=yaml.FullLoader)
