@@ -38,7 +38,7 @@ def now_str(pattern='yyyymmdd_hhmmss'):
     return 'Pattern not implemented!'
 
 
-def print_file(txt, file=None, append=True):
+def print_file(txt, file='', append=True):
     """
     Print to console. If file given then also print to file
 

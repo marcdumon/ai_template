@@ -1,12 +1,11 @@
 ## Todo
 Short Term:
-- lr-finder
+- lr-scheduler: check LambdaLR()
 - sanity checking before training to catch crashes early
-- finish logging
 - Make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
 - run first experiment: what's the effect of increasing noisy labels.
 - save_tb: copy the tb results to ../reports
-
+- check simulate_values and plot_values in param_scheduler.py
 
 
 
@@ -20,7 +19,7 @@ See: [Raymond Hettinger «Build powerful, new data structures with Python's abst
 - what is TopKCategoricalAccuracy?
 - layer visualisation: https://github.com/utkuozbulak/pytorch-cnn-visualizations
 - https://github.com/FrancescoSaverioZuppichini/Pytorch-how-and-when-to-use-Module-Sequential-ModuleList-and-ModuleDict/blob/master/notebook.ipynb
-
+- doctests?
 - put all imports in \_\_init\_\_().  According to Raymond Hettinger - Beyond PEP 8, we don't need from aaa.bbb.ccc import ddd
  [see](https://stackoverflow.com/questions/5831148/why-would-i-put-python-code-in-init-py-files/5831225)
 
