@@ -15,50 +15,15 @@ import yaml
 
 from my_tools.python_tools import now_str
 
-'''
-Why using dataclass iso dictionary ?
-    - structure:
-        module configuration.py
-            DC()
-            cd = DC()
-        module main_app.py
-            from configuration import dc
-            dc.lr = 10                  dic['lr'] = 10
-                                        run(dic)
-        module machine.py
-            from configuration import dc
-                lr = dc.lr              lr = dic['lr']
-    - getting and setting dataclass iso dictionary: 
-        - lr = dc.lr iso lr = dic['ld']
-        - easy saving dataclass
-    - using of gridsearch: 
-        for lr in [1e-2, 1e-3, ...]:
-            for drop in [.1, .2, ...]:
-                dc.lr = lr                dic['lr] = lr
-                dc.drop = drop            dic['drop'] = drop
-                run()                     run(dic)
-    - using stages:
-        dc1 = DC()
-        dc2 = DC()
-        for dc in [dc1, dc2]:
-            run()
-    - save and load:
-        dc.save()
-        dc.load()
-'''
 
-
-# Todo: Create a dataclass for modelparameters
-# Todo: Make an abstract base dataclass
 @dataclass
 class Config:
     """Dataclass with all configuration parameters."""
 
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
-    # checkpoint_path: str = '/media/md/Development/'
     report_path: str = '../reports/'
-    tb_basedir = '/media/md/Development/My_Projects/0_ml_project_template.v1/tensorboard/'
+    tb_path = '../tensorboard/'
 
     device = 'cuda'
     creation_time: str = now_str('yyyymmdd_hhmmss')
@@ -113,19 +78,23 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
-    tb_logdir: str = f'{cfg.tb_basedir}{experiment}_{stage}/'
+    base_path: str = f'{cfg.report_path}{experiment}/{creation_time}/'
+    models_path: str = f'{base_path}models/'
+    results_path: str = f'{base_path}/results/'
+    src_path: str = f'{base_path}src/'
+    tb_log_path: str = f'{cfg.tb_path}{experiment}/{creation_time}/'
 
-    @property
-    def base_path(self):
-        return f'{cfg.report_path}{self.experiment}_{self.stage}/'
+    # @property
+    # def base_path(self):
+    #     return f'{cfg.report_path}{self.experiment}/{self.creation_time}/'
 
-    @property
-    def models_path(self):
-        return f'{self.base_path}models/'
+    # @property
+    # def models_path(self):
+    #     return f'{self.base_path}models/'
 
-    @property
-    def results_path(self):
-        return f'{self.base_path}/results/'
+    # @property
+    # def results_path(self):
+    #     return f'{self.base_path}/results/'
 
     def __post_init__(self):
         self.creation_time = now_str('yyyymmdd_hhmmss')
@@ -136,7 +105,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
 
     def save_yaml(self, file=None):
         if file is None:
-            file = f'{self.base_path}rcp.yml'
+            file = f'{self.base_path}rcp_{rcp.stage}.yml'
         with open(file, 'w') as f:
             yaml.dump(self.__dict__, f, default_flow_style=False)
         return self
@@ -145,7 +114,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     def load_yaml(cls, file=None):
         """Load the recipe yaml and returns a Recipe dataclass"""
         if file is None:
-            file = f'{cls.base_path}rcp_{rcp.experiment}_{rcp.stage}.yml'
+            file = f'{cls.base_path}rcp_{rcp.stage}.yml'
         try:
             with open(file, 'r') as f:
                 recipe = yaml.load(f, Loader=yaml.FullLoader)
