@@ -49,6 +49,7 @@ class Model(nn.Module):
         return x
 
 
+# Todo: TB no records between epoch 5 and 10; 50 and 56,
 def run_training(model, train, valid, optimizer, loss):
     # Data
     transform = transforms.Compose([
@@ -61,15 +62,15 @@ def run_training(model, train, valid, optimizer, loss):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     train.transform, valid.transform = transform, transform
-    train.save_csv(f'{cfg.log_path}train_df_{rcp.stage}.csv')
-    valid.save_csv(f'{cfg.log_path}valid_df_{rcp.stage}.csv')
+    train.save_csv(f'{rcp.base_path}train_df.csv')
+    valid.save_csv(f'{rcp.base_path}valid_df.csv')
     train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     print(f'# batches: train: {len(train_loader)}, valid: {len(valid_loader)}')
 
     # Save the graph.gv
     dot = make_dot(model(next(iter(train_loader))[0].to(cfg.device)), params=dict(model.named_parameters()))
-    dot.render(f'{rcp.experiment}_graph_{rcp.stage}', './', format='png')
+    dot.render(f'{rcp.base_path}graph', './', format='png', cleanup=True)
 
     # Engines
     trainer = create_supervised_trainer(model, optimizer, loss, device=cfg.device)
@@ -111,7 +112,7 @@ def run_training(model, train, valid, optimizer, loss):
 
     # Checkpoint
     to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-    checkpoint = Checkpoint(to_save, DiskSaver('./test_cp', require_empty=False, create_dir=True),
+    checkpoint = Checkpoint(to_save, DiskSaver(f'{rcp.base_path}models', require_empty=False, create_dir=True),
                             n_saved=4, filename_prefix='best',
                             score_function=score_function, score_name="val_acc",
                             global_step_transform=global_step_from_engine(trainer))
@@ -120,7 +121,7 @@ def run_training(model, train, valid, optimizer, loss):
     if load_checkpoint:  # Todo: Activate via configuration.py or function?
         resume_epoch = 9
         cp = 'best_checkpoint_9_val_loss=-0.8643772215942542.pth'
-        obj = th.load(f'./test_cp/{cp}')
+        obj = th.load(f'{rcp.base_path}models{cp}')
         # model.load_state_dict(obj['model'])
         # optimizer.load_state_dict(obj['optimizer'])
         # lr_scheduler.load_state_dict(obj['lr_scheduler'])
@@ -143,15 +144,15 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.add_graph(model, images)
         tb_logger.writer.flush()
 
-    @trainer.on(Events.ITERATION_COMPLETED(every=10))
-    def log_tenserboard(engine):
-        tb_logger.writer.add_scalar("batch/train/loss", engine.state.output, engine.state.iteration)
+    # @trainer.on(Events.ITERATION_COMPLETED(every=10))
+    # def log_tenserboard(engine):
+    #     tb_logger.writer.add_scalar("batch/train/loss", engine.state.output, engine.state.iteration)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=int(1 + len(train_loader) / 100)))
     def print_dash(engine):
         print('-', sep='', end='', flush=True)
 
-    @trainer.on(Events.EPOCH_COMPLETED(every=5))
+    @trainer.on(Events.EPOCH_COMPLETED(every=10))
     def get_top_losses(engine, k=6):
         nll_loss = nn.NLLLoss(reduction='none')
         df = predict_dataset(model, valid, nll_loss, transform, bs=rcp.bs * 10, device=cfg.device)
@@ -162,13 +163,13 @@ def run_training(model, train, valid, optimizer, loss):
             img = th.as_tensor(img[np.newaxis, :, :])  # add C
             tag = f'TopLoss_{engine.state.epoch}/{row.loss:.4f}/{row.target}/{row.pred}/{row.pred2}'
             tb_logger.writer.add_image(tag, img, 0)
-            if i >= k: break
+            if i >= k - 1: break
         tb_logger.writer.flush()
 
     valid_dl_sorted = DataLoader(valid, batch_size=rcp.bs, shuffle=False)  # Can't use valid_dl because impossible te know the indices for a batch when shuffle=True
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_training_results(engine):
+    def log_train_valid_results(engine):
         t_evaluator.run(train_loader)
         t_metrics = t_evaluator.state.metrics
         t_avg_acc = t_metrics['accuracy']
@@ -184,8 +185,8 @@ def run_training(model, train, valid, optimizer, loss):
         v_avg_prec = v_metrics['precision_avg']
         v_avg_rec = v_metrics['recall_avg']
         v_topk = v_metrics['topK']
-        lr_scheduler.step(v_avg_nll)  # ReduceLROnPlateau
-        print(v_avg_prec)
+        # lr_scheduler.step(v_avg_nll)  # ReduceLROnPlateau
+        print()
         print_file(f'{now_str("mm-dd hh:mm:ss")} |'
                    f'Ep:{engine.state.epoch:3} | '
                    f'acc: {t_avg_acc:.5f}/{v_avg_acc:.5f} | '
@@ -193,19 +194,18 @@ def run_training(model, train, valid, optimizer, loss):
                    # f'prec: {t_avg_prec:.5f}/{v_avg_prec:.5f} | '
                    f'rec: {t_avg_rec:.5f}/{v_avg_rec:.5f} |'
                    f'topK: {t_topk:.5f}/{v_topk:.5f} |',
-                   f'{cfg.log_path}train_log_{rcp.stage}.txt')
+                   f'{rcp.base_path}results/train_log.txt')
         tb_logger.writer.add_scalar("0_train/acc", t_avg_acc, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/loss", t_avg_nll, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/prec", t_avg_prec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/rec", t_avg_rec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/topK", t_topk, engine.state.epoch)
-
+        tb_logger.writer.flush()
         tb_logger.writer.add_scalar("0_valid/acc", v_avg_acc, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/loss", v_avg_nll, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/prec", v_avg_prec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/rec", v_avg_rec, engine.state.epoch)
         tb_logger.writer.add_scalar("0_valid/topK", v_topk, engine.state.epoch)
-
         tb_logger.writer.flush()
 
         # Confusion Matrix
@@ -231,9 +231,8 @@ def run_training(model, train, valid, optimizer, loss):
     features = images.view(-1, images.shape[-1] * images.shape[-2])  # nx1x28x28 -> n*784
     tb_logger.writer.add_embedding(features, metadata=class_labels, label_img=images)
 
-
-    @trainer.on(Events.COMPLETED)
-    def test(engine):
+    @trainer.on(Events.EPOCH_COMPLETED(every=5))
+    def log_pr_curve(engine):
         # 1. gets the probability predictions in a test_size x num_classes Tensor
         # 2. gets the preds in a test_size Tensor
         # takes ~10 seconds to run
@@ -242,14 +241,13 @@ def run_training(model, train, valid, optimizer, loss):
         with th.no_grad():
             for data in valid_loader:
                 images, labels = data
-                images, labels =images.to(cfg.device), labels.to(cfg.device)
+                images, labels = images.to(cfg.device), labels.to(cfg.device)
                 output = model(images)
                 class_probs_batch = [th.softmax(el, dim=0) for el in output]
                 _, class_preds_batch = th.max(output, 1)
 
                 class_probs.append(class_probs_batch)
                 class_preds.append(class_preds_batch)
-
         test_probs = th.cat([th.stack(batch) for batch in class_probs])
         test_preds = th.cat(class_preds)
 
@@ -263,19 +261,20 @@ def run_training(model, train, valid, optimizer, loss):
             tensorboard_probs = test_probs[:, class_index]
 
             tb_logger.writer.add_pr_curve(valid.classes[class_index],
-                                tensorboard_preds,
-                                tensorboard_probs,
-                                global_step=global_step)
+                                          tensorboard_preds,
+                                          tensorboard_probs,
+                                          global_step=global_step)
             tb_logger.writer.close()
 
         # plot all the pr curves
         for i in range(len(valid.classes)):
-            add_pr_curve_tensorboard(i, test_probs, test_preds)
+            add_pr_curve_tensorboard(i, test_probs, test_preds, engine.state.epoch)
 
+    cfg.save_yaml()
+    rcp.save_yaml()
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
     return trainer
-
 
 
 def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.device):
@@ -318,8 +317,6 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.d
     df['pred'] = pred
     df['pred2'] = pred2
     return df
-
-
 
 
 if __name__ == '__main__':
