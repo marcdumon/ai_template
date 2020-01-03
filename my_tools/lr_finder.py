@@ -4,28 +4,32 @@
 # md
 # --------------------------------------------------------------------------------------------------------
 
-# Source:
+# Source:https://github.com/davidtvs/pytorch-lr-finder
 
 from __future__ import print_function, with_statement, division
 import copy
 import os
 import torch
+from matplotlib import ticker
 from tqdm.autonotebook import tqdm
 from torch.optim.lr_scheduler import _LRScheduler
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
 
 try:
     from apex import amp
+
     IS_AMP_AVAILABLE = True
 except ImportError:
     import logging
+
     logging.basicConfig()
     logger = logging.getLogger(__name__)
-    logger.warning(
-        'To enable mixed precision training, please install `apex`. '
-        'Or you can re-install this package by the following command:\n'
-        '  pip install torch-lr-finder -v --global-option="amp"'
-    )
+    # logger.warning(
+    #     'To enable mixed precision training, please install `apex`. '
+    #     'Or you can re-install this package by the following command:\n'
+    #     '  pip install torch-lr-finder -v --global-option="amp"'
+    # )
     IS_AMP_AVAILABLE = False
     del logging
 
@@ -92,14 +96,14 @@ class LRFinder(object):
         self.model.to(self.model_device)
 
     def range_test(
-        self,
-        train_loader,
-        val_loader=None,
-        end_lr=10,
-        num_iter=100,
-        step_mode="exp",
-        smooth_f=0.05,
-        diverge_th=5,
+            self,
+            train_loader,
+            val_loader=None,
+            end_lr=10,
+            num_iter=100,
+            step_mode="exp",
+            smooth_f=0.05,
+            diverge_th=5,
     ):
         """Performs the learning rate range test.
 
@@ -254,11 +258,16 @@ class LRFinder(object):
             losses = losses[skip_start:-skip_end]
 
         # Plot loss as a function of the learning rate
+        fig = plt.figure()
+        ax = plt.axes()
         plt.plot(lrs, losses)
         if log_lr:
             plt.xscale("log")
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
+        # print(plt.xticks())
+        # ax.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+        plt.grid(b=True, which='both', axis='both', c='gray', lw=.5, ls='dashed')
 
         if show_lr is not None:
             plt.axvline(x=show_lr, color="red")
@@ -292,7 +301,7 @@ class AccumulationLRFinder(LRFinder):
     """
 
     def __init__(self, model, optimizer, criterion, device=None, memory_cache=True, cache_dir=None,
-        accumulation_steps=1):
+                 accumulation_steps=1):
         super(AccumulationLRFinder, self).__init__(
             model, optimizer, criterion, device=device, memory_cache=memory_cache, cache_dir=cache_dir
         )
@@ -300,7 +309,7 @@ class AccumulationLRFinder(LRFinder):
 
     def _train_batch(self, iter_wrapper):
         self.model.train()
-        total_loss = None   # for late initialization
+        total_loss = None  # for late initialization
 
         self.optimizer.zero_grad()
         for i in range(self.accumulation_steps):
