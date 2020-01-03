@@ -3,36 +3,30 @@
 # src - machine.py
 # md
 # --------------------------------------------------------------------------------------------------------
-import torch as th
+from distutils.dir_util import remove_tree, copy_tree
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
+import torch as th
 import torch.nn as nn
-from ignite.contrib.handlers.tensorboard_logger import OutputHandler, TensorboardLogger, WeightsHistHandler, OptimizerParamsHandler, WeightsScalarHandler, GradsScalarHandler, \
-    GradsHistHandler
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events, engine, Engine, _prepare_batch
-from ignite.handlers import ModelCheckpoint, Checkpoint, DiskSaver, global_step_from_engine, EarlyStopping
-from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix, EpochMetric
+import torchvision as thv
+from ignite.contrib.handlers.tensorboard_logger import *
+from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events
+from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import EarlyStopping
+from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
 from skimage import io
-from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from torchvision.datasets import MNIST
 from torchvision.transforms import transforms
-from tqdm import tqdm
 
 from configuration import rcp, cfg
-from data_process import MNIST_Dataset
 from models.standard_models import MNSIT_Simple
-from my_tools.python_tools import print_file, now_str, set_random_seed
-from my_tools.pytorch_tools import create_tb_summary_writer, DeNormalize
-import torchvision as thv
-
+from my_tools.python_tools import print_file, now_str
+from my_tools.pytorch_tools import DeNormalize
 from visualization.confusion_matrix import pretty_plot_confusion_matrix
 from visualization.make_graphviz_graph import make_dot
-import numpy as np
-
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 2000)
 
 
 class Model(nn.Module):
@@ -62,8 +56,8 @@ def run_training(model, train, valid, optimizer, loss):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     train.transform, valid.transform = transform, transform
-    train.save_csv(f'{rcp.base_path}train_df.csv')
-    valid.save_csv(f'{rcp.base_path}valid_df.csv')
+    train.save_csv(f'{rcp.base_path}train_df_{rcp.stage}.csv')
+    valid.save_csv(f'{rcp.base_path}valid_df_{rcp.stage}.csv')
     train_loader = DataLoader(train, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     valid_loader = DataLoader(valid, batch_size=rcp.bs, num_workers=8, shuffle=rcp.shuffle_batch)
     print(f'# batches: train: {len(train_loader)}, valid: {len(valid_loader)}')
@@ -82,16 +76,13 @@ def run_training(model, train, valid, optimizer, loss):
     v_evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy(),
                                                               'nll': Loss(loss),
                                                               'precision_avg': Precision(average=True),
-                                                              # 'precision': Precision(average=False),
                                                               'recall_avg': Recall(average=True),
-                                                              # 'recall': Recall(average=False),
                                                               'topK': TopKCategoricalAccuracy(),
                                                               'conf_mat': ConfusionMatrix(num_classes=len(valid.classes), average=None),
-                                                              # 'conf_mat_avg': ConfusionMatrix(num_classes=len(valid.classes), average='samples'),
                                                               }, device=cfg.device)
 
     # Tensorboard
-    tb_logger = TensorboardLogger(log_dir=f'{rcp.tb_logdir}/{now_str()}')
+    tb_logger = TensorboardLogger(log_dir=f'{rcp.tb_log_path}{rcp.stage}')
     tb_logger.attach(trainer, log_handler=OptimizerParamsHandler(optimizer, "lr"), event_name=Events.EPOCH_STARTED)
     tb_logger.attach(trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED)
     tb_logger.attach(trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED)
@@ -99,8 +90,8 @@ def run_training(model, train, valid, optimizer, loss):
     tb_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED)
 
     def score_function(engine):
-        # score = -1 * engine.state.metrics['nll']
-        score = engine.state.metrics['accuracy']
+        score = -1 * round(engine.state.metrics['nll'], 5)
+        # score = engine.state.metrics['accuracy']
         return score
 
     # Schelulers
@@ -110,27 +101,34 @@ def run_training(model, train, valid, optimizer, loss):
     es_handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
     v_evaluator.add_event_handler(Events.COMPLETED, es_handler)
 
-    # Checkpoint # todo: also save last x models + better loss than acc?
+    # Checkpoint
     to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-    checkpoint = Checkpoint(to_save, DiskSaver(f'{rcp.models_path}', require_empty=False, create_dir=True),
-                            n_saved=4, filename_prefix='best',
-                            score_function=score_function, score_name="val_acc",
-                            global_step_transform=global_step_from_engine(trainer))
-    v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
+    save_best = Checkpoint(to_save, DiskSaver(f'{rcp.models_path}', require_empty=False, create_dir=True),
+                           n_saved=4, filename_prefix=f'best_{rcp.stage}',
+                           score_function=score_function, score_name="val_loss",
+                           global_step_transform=global_step_from_engine(trainer))
+
+    v_evaluator.add_event_handler(Events.EPOCH_COMPLETED(every=1), save_best)
     load_checkpoint = False
+
     if load_checkpoint:  # Todo: Activate via configuration.py or function?
-        resume_epoch = 9
-        cp = 'best_checkpoint_9_val_loss=-0.8643772215942542.pth'
-        obj = th.load(f'{rcp.base_path}models{cp}')
-        # model.load_state_dict(obj['model'])
-        # optimizer.load_state_dict(obj['optimizer'])
-        # lr_scheduler.load_state_dict(obj['lr_scheduler'])
+        resume_epoch = 6
+        cp = f'{rcp.models_path}last_{rcp.stage}_checkpoint.pth'
+        obj = th.load(f'{cp}')
         Checkpoint.load_objects(to_load, obj)
 
         @trainer.on(Events.STARTED)
         def resume_training(engine):
             engine.state.iteration = (resume_epoch - 1) * len(engine.state.dataloader)
             engine.state.epoch = resume_epoch - 1
+
+    @trainer.on(Events.EPOCH_COMPLETED(every=1))
+    def save_last_checkpoint(engine):
+        checkpoint = {}
+        to_save = to_load = {'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+        for k, obj in to_save.items():
+            checkpoint[k] = obj.state_dict()
+        th.save(checkpoint, f'{rcp.models_path}last_{rcp.stage}_checkpoint.pth')
 
     @trainer.on(Events.STARTED)
     def show_batch_images(engine):
@@ -191,10 +189,10 @@ def run_training(model, train, valid, optimizer, loss):
                    f'Ep:{engine.state.epoch:3} | '
                    f'acc: {t_avg_acc:.5f}/{v_avg_acc:.5f} | '
                    f'loss: {t_avg_nll:.5f}/{v_avg_nll:.5f} | '
-                   # f'prec: {t_avg_prec:.5f}/{v_avg_prec:.5f} | '
+                   f'prec: {t_avg_prec:.5f}/{v_avg_prec:.5f} | '
                    f'rec: {t_avg_rec:.5f}/{v_avg_rec:.5f} |'
                    f'topK: {t_topk:.5f}/{v_topk:.5f} |',
-                   f'{rcp.base_path}results/train_log.txt')
+                   f'{rcp.results_path}train_log_{rcp.stage}.txt')
         tb_logger.writer.add_scalar("0_train/acc", t_avg_acc, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/loss", t_avg_nll, engine.state.epoch)
         tb_logger.writer.add_scalar("0_train/prec", t_avg_prec, engine.state.epoch)
@@ -209,10 +207,10 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.flush()
 
         # Confusion Matrix
-        if trainer.state.epoch % 5==0: # Todo: separate function + cm for last epoch
+        if trainer.state.epoch % 5 == 0:  # Todo: separate function + cm for last epoch
             cm = v_metrics['conf_mat']
             cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
-            pretty_plot_confusion_matrix(cm_df, f'{rcp.base_path}results/cm{trainer.state.epoch}.png', False)
+            pretty_plot_confusion_matrix(cm_df, f'{rcp.results_path}cm_{rcp.stage}_{trainer.state.epoch}.png', False)
 
     # Tensorboard Projector
     # helper function
@@ -275,6 +273,7 @@ def run_training(model, train, valid, optimizer, loss):
     rcp.save_yaml()
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_logger.writer.close()
+
     return trainer
 
 
@@ -320,13 +319,28 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.d
     return df
 
 
+def setup_experiment():
+    """
+    Create directories for experiment:
+        ../reports
+            /experiment
+                /yyyymmdd_hhmmss
+                    /models
+                    /results
+                    /src
+
+    """
+    # Create paths
+    Path(f'{rcp.models_path}').mkdir(parents=True, exist_ok=True)
+    Path(f'{rcp.results_path}').mkdir(parents=True, exist_ok=True)
+    # Path(f'{rcp.src_path}').mkdir(parents=True, exist_ok=True)
+    # Copy src
+    source = '../src'
+    destination = f'{rcp.src_path}'
+    # remove_tree(destination)  # copy_tree can't overwrite
+    copy_tree(source, destination)
+
+
 if __name__ == '__main__':
-    # set_random_seed(rcp.seed)
-    # loss_fn = nn.NLLLoss(reduction='none')
-    # m = Model()
-    # ds = MNIST_Dataset(sample=True)
-    # ds.data = ds.data
-    # ds.targets = ds.targets
-    # x = predict_dataset(m, ds, loss_fn, bs=2)
-    # print(x)
+    setup_experiment()
     pass
