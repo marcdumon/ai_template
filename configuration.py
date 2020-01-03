@@ -120,12 +120,8 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
         return f'{cfg.report_path}{self.experiment}_{self.stage}/'
 
     @property
-    def checkpoint_path(self):
+    def models_path(self):
         return f'{self.base_path}models/'
-
-    @property
-    def summary_file(self):
-        return f'{self.base_path}summary.txt'
 
     @property
     def results_path(self):

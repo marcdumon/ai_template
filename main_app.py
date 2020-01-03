@@ -18,8 +18,8 @@ set_random_seed(rcp.seed)
 mnist_ds = MNIST_Dataset(sample=False)
 
 train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
-# train.data = train.data[:1024]
-# train.targets = train.targets[:1024]
+train.data = train.data[:124]
+train.targets = train.targets[:124]
 # train.targets=np.random.permutation(train.targets)
 # targets = []
 # for i in range(len(valid.targets)):
@@ -44,7 +44,7 @@ params = set_lr(model, ['fc1', 'fc2'], rcp.lr / rcp.lr_frac[0])
 params += set_lr(model, ['conv1', 'conv2'], rcp.lr / rcp.lr_frac[1])
 optimizer = th.optim.Adam(params=params, lr=1e999)
 loss = th.nn.NLLLoss()
-summary(model, (1, 28, 28), batch_size=rcp.bs, device=cfg.device, to_file=rcp.summary_file)
+summary(model, (1, 28, 28), batch_size=rcp.bs, device=cfg.device, to_file=f'{rcp.models_path}summary.txt')
 run_training(model, train=train, valid=valid, optimizer=optimizer, loss=loss)
 
 
