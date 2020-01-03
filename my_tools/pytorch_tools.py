@@ -16,7 +16,7 @@ from my_tools.python_tools import print_file
 
 
 # MODELS
-def set_requires_grad(model, names, requires_grad):
+def set_requires_grad(model, names, requires_grad, to_file=''):
     """
     Set the requires_grad on parameters from model based on name
 
@@ -26,15 +26,16 @@ def set_requires_grad(model, names, requires_grad):
             if 'all: then all requires_grad will be set for parameters
             If part, then all parameters with that part in their name will have requires_grad set.
         requires_grad: (bool) Sets the requires_grad of the parameter
+        to_file: (string) if not '' then print also print to file to_file
     """
     if names == 'all': names = ['.']
     if isinstance(names, str): names = [names]
     if isinstance(names, int): names = [str(names)]
-    print_file(f'Setting requires_grad:')
+    # print_file(f'Setting requires_grad:', to_file, False)
     for n in names:
         for name, param in [(name, param) for name, param in model.named_parameters() if n in name]:
             param.requires_grad = requires_grad
-            print_file(f'\t{name:40}: {requires_grad}')
+            # print_file(f'\t{name:40}: {requires_grad}', to_file, True)
 
 
 def set_lr(model, names, lr):
@@ -237,7 +238,7 @@ def create_tb_summary_writer(model, data_loader, log_dir):
     writer = SummaryWriter(log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
-    x, y = x.to('cuda'), y.to('cuda') # Todo: Make more generic
+    x, y = x.to('cuda'), y.to('cuda')  # Todo: Make more generic
     try:
         writer.add_graph(model, x)
     except Exception as e:
@@ -252,7 +253,7 @@ class DeNormalize(thv.transforms.Normalize):
 
     def __init__(self, mean, std):
         mean = th.as_tensor(mean)
-        std_inv = th.as_tensor(1.)/(th.as_tensor(std)+1e-7)
+        std_inv = th.as_tensor(1.) / (th.as_tensor(std) + 1e-7)
         mean_inv = -mean * std_inv
         super().__init__(mean=mean_inv, std=std_inv)
 
