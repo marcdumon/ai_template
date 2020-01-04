@@ -24,11 +24,12 @@ import numpy as np
 import pandas as pd
 from skimage import io
 from torch.utils.data import Dataset
-import matplotlib.pyplot as plt
+
+from configuration import cfg
 
 __all__ = ['MNIST_Dataset']
 
-_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'  # Todo: refactor this outside
+_base_path = cfg.datasets_path
 
 
 class Standard_Dataset(Dataset):
@@ -51,7 +52,7 @@ class Standard_Dataset(Dataset):
         Returns:
             tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
         """
-        # Todo: check docstring inheritance in children
+
         super(Standard_Dataset, self).__init__()
         self.transform = transform
         assert self.name, "The class variable str 'name' is not set. "
@@ -143,11 +144,7 @@ class MNIST_Dataset(Standard_Dataset):
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
         if self.transform is not None:
             img = self.transform(img)
-        return img, target  # Todo: is it not better to use a dict iso tuple? In dict, we easily can add other (meta)data
-        #                       But with a dictionary we can't do image, label = next(iter(dataloader))
-        #                     Todo: Add index to return img, target. Otherwise it's impossible to know which images are in dataloader batch
-        #                           See: https://discuss.pytorch.org/t/how-to-retrieve-the-sample-indices-of-a-mini-batch/7948
-        #                           but Ignite expect to have 2 values, not 3.
+        return img, target
 
 
 if __name__ == '__main__':
