@@ -18,13 +18,12 @@ Node = namedtuple('Node', ('name', 'inputs', 'attr', 'op'))
 def make_dot(var, params=None):
     """ Produces Graphviz representation of PyTorch autograd graph.gv.
 
-    Blue nodes are the Variables that require grad, orange are Tensors
-    saved for backward in torch.autograd.Function
+    Blue nodes are the Variables that require grad, orange are Tensors saved for backward
+    in torch.autograd.Function
 
     Args:
         var: output Variable
-        params: dict of (name, Variable) to add names to node that
-            require grad (TODO: make optional)
+        params: dict of (name, Variable) to add names to node that require grad
     """
     if params is not None:
         assert all(isinstance(p, Variable) for p in params.values())
@@ -40,7 +39,7 @@ def make_dot(var, params=None):
     seen = set()
 
     def size_to_str(size):
-        return '(' + (', ').join(['%d' % v for v in size]) + ')'
+        return '(' + ', '.join(['%d' % v for v in size]) + ')'
 
     output_nodes = (var.grad_fn,) if not isinstance(var, tuple) else tuple(v.grad_fn for v in var)
 

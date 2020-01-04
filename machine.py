@@ -5,6 +5,7 @@
 # --------------------------------------------------------------------------------------------------------
 from distutils.dir_util import remove_tree, copy_tree
 from pathlib import Path
+from shutil import rmtree
 
 import numpy as np
 import pandas as pd
@@ -39,11 +40,9 @@ class Model(nn.Module):
     def forward(self, x):
         x = self.cnn(x)
         # x=self.resnet(x)
-
         return x
 
 
-# Todo: TB no records between epoch 5 and 10; 50 and 56,
 def run_training(model, train, valid, optimizer, loss):
     # Data
     transform = transforms.Compose([
@@ -111,7 +110,7 @@ def run_training(model, train, valid, optimizer, loss):
     v_evaluator.add_event_handler(Events.EPOCH_COMPLETED(every=1), save_best)
     load_checkpoint = False
 
-    if load_checkpoint:  # Todo: Activate via configuration.py or function?
+    if load_checkpoint:
         resume_epoch = 6
         cp = f'{rcp.models_path}last_{rcp.stage}_checkpoint.pth'
         obj = th.load(f'{cp}')
@@ -207,7 +206,7 @@ def run_training(model, train, valid, optimizer, loss):
         tb_logger.writer.flush()
 
         # Confusion Matrix
-        if trainer.state.epoch % 5 == 0:  # Todo: separate function + cm for last epoch
+        if trainer.state.epoch % 5 == 0:
             cm = v_metrics['conf_mat']
             cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
             pretty_plot_confusion_matrix(cm_df, f'{rcp.results_path}cm_{rcp.stage}_{trainer.state.epoch}.png', False)
@@ -340,16 +339,20 @@ def setup_experiment():
     # remove_tree(destination)  # copy_tree can't overwrite
     copy_tree(source, destination)
 
-def close_experiment(experiment:str, datetime:str):
+
+def close_experiment(experiment: str, datetime: str):
     """
-    copy experiment to ../reports
+    move experiment to ../reports
     move ../tensorboard/experiment to ../reports
     """
-    source=f'{cfg.temp_report_path}{experiment}/{datetime}/'
-    tb_source=f'../tensorboard/{experiment}/{datetime}/'
-    destination=f'../reports/{experiment}/{datetime}/'
-    copy_tree(source, destination)
-    copy_tree(tb_source, f'{destination}tensorboard')
+    source = f'{cfg.temp_report_path}{experiment}/{datetime}/'
+    tb_source = f'../tensorboard/{experiment}/{datetime}/'
+    destination = f'../reports/{experiment}/{datetime}/'
+    copy_tree(source, destination, verbose=2)
+    copy_tree(tb_source, f'{destination}tensorboard', verbose=2)
+    remove_tree(source, verbose=2)
+    remove_tree(tb_source, verbose=2)
+    exit()
 
 
 if __name__ == '__main__':

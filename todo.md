@@ -1,17 +1,40 @@
 ## Todo
 Short Term:
-- lr-scheduler: check LambdaLR()
-- sanity checking before training to catch crashes early
-- Make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
+- make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
 - run first experiment: what's the effect of increasing noisy labels.
-- save_tb: copy the tb results to ../reports
+- check get_mean_and_std(dataset) from pytorch_tools
+
+ Mid Term (goals version 0.2):
+- sanity checking before training to catch crashes early
+- lr-scheduler: check LambdaLR()
 - check simulate_values and plot_values in param_scheduler.py
-
-
-
+- save description and print(model)
+- organise lr_finder
+- merge Config and Recipe ? 
+- check docstring inheritance in children (fi in standard_dataset)
+- manage model parameters (like fc-size,...)
+- create_tb_summary_writer() creates tb_summary writer and graph. split this
+- move load_checkpoint outside run_training
+- show_batch_images and tb projector not for every stage (same)
+- confusion matrix outside? also for last epoch
+- show_mpl_grid in pytorch_tools: rename to mpl_show_grid and make generic for tensors, list, df,...
  
- 
- Mid Term:
+
+
+- Check:
+    class MnistResNet(ResNet):
+    def __init__(self):
+   ---> super(MnistResNet, self).__init__(BasicBlock, [2, 2, 2, 2], num_classes=10)
+        self.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        
+    def forward(self, x):
+    ===> return torch.softmax(super(MnistResNet, self).forward(x), dim=-1)
+    from: https://zablo.net/blog/post/using-resnet-for-mnist-in-pytorch-tutorial/ 
+    But bigg mistake in loss (see: https://github.com/marrrcin/pytorch-resnet-mnist/issues/1)
+- check: https://pytorch.org/blog/towards-reproducible-research-with-pytorch-hub/
+
+
+
 - use \_\_init\_\_.py to have better imports elsewhere? See: [why would I put python code in __init__.py files
 - check python logging
 - refactor with Abstract Classes (framework design pattern or mixin classes)? 
