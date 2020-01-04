@@ -11,23 +11,6 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Todo: Put the model parameters
-# checkout:
-'''
-class MnistResNet(ResNet):
-    def __init__(self):
-   ---> super(MnistResNet, self).__init__(BasicBlock, [2, 2, 2, 2], num_classes=10)
-        self.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        
-    def forward(self, x):
-    ===> return torch.softmax(super(MnistResNet, self).forward(x), dim=-1)
-from: https://zablo.net/blog/post/using-resnet-for-mnist-in-pytorch-tutorial/ 
-But bigg mistake in loss (see: https://github.com/marrrcin/pytorch-resnet-mnist/issues/1)
-'''
-
-
-# checkout: https://pytorch.org/blog/towards-reproducible-research-with-pytorch-hub/
-
 
 class MNSIT_Simple(nn.Module):
 
@@ -51,20 +34,7 @@ class MNSIT_Simple(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1) # = log(softmax(x))
+        output = F.log_softmax(x, dim=1)  # = log(softmax(x))
         # output = th.exp(output) # probabilities
         # == output = F.softmax(x,dim=1)
         return output
-
-
-'''
-torch.Size([2, 32, 26, 26])
-torch.Size([2, 64, 24, 24])
-torch.Size([2, 64, 12, 12])
-torch.Size([2, 64, 12, 12])
-torch.Size([2, 9216])
-torch.Size([2, 128])
-torch.Size([2, 128])
-torch.Size([2, 10])
-torch.Size([2, 10])
-'''

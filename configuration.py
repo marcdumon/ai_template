@@ -25,8 +25,8 @@ class Config:
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
     temp_report_path: str = '../temp_reports/'
-    datasets_path: str = '/media/md/Development/0_Datasets/0_standard_datasets/'
     tb_path = '../tensorboard/'
+    datasets_path: str = '/media/md/Development/0_Datasets/0_standard_datasets/'
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod

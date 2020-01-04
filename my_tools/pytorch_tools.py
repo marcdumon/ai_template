@@ -118,7 +118,7 @@ def get_class_distribution(dataset):
     return class_distribution
 
 
-def get_mean_and_std(dataset):  # Todo: check this out
+def get_mean_and_std(dataset):
     """ Compute the mean and std value of dataset. From: https://github.com/isaykatsman/pytorch-cifar/blob/master/utils.py """
     dataloader = th.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = th.zeros(3)
@@ -231,14 +231,14 @@ def summary(model, input_size, batch_size=-1, device="cuda", to_file=None):
     print_file("--------------------------------------------------------------------------", to_file)
 
 
-def create_tb_summary_writer(model, data_loader, log_dir):
+def create_tb_summary_writer(model, data_loader, log_dir, device='cuda'):
     """
     Creates tensorboard summary writer, adds the model's graph to tensorboard and returns the writer
     """
     writer = SummaryWriter(log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
-    x, y = x.to('cuda'), y.to('cuda')  # Todo: Make more generic
+    x, y = x.to(device), y.to(device)
     try:
         writer.add_graph(model, x)
     except Exception as e:
