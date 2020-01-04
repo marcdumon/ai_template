@@ -9,6 +9,7 @@ Manages the configuration of the environemet and the recipe for running the mach
 It reads a yaml files into dataclasses.
 """
 from dataclasses import dataclass, field
+from time import sleep
 from typing import List
 
 import yaml
@@ -20,16 +21,12 @@ from my_tools.python_tools import now_str
 class Config:
     """Dataclass with all configuration parameters."""
 
+    device = 'cuda'
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
     temp_report_path: str = '../temp_reports/'
     tb_path = '../tensorboard/'
-
-    device = 'cuda'
     creation_time: str = now_str('yyyymmdd_hhmmss')
-
-    def __post_init__(self):
-        self.creation_time = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
     def save_default_yaml():
@@ -63,41 +60,38 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     A dataclass with all the parameters that might vary from one experiment to the other or from one stage of an experiment
     to the other stage
     """
-    experiment: str = 'baseline'
-    stage: int = 1
-    seed: int = 19640601
+    experiment: str = ''
+    description = ''
+    stage: int = 0
+    seed: int = 42
 
     bs: int = 8 * 64
     lr: float = 3e-3
     lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
-
     shuffle_batch: bool = True
-    # model_parameters: Todo: separated, inheritated or nested. Where putting the parameters?
-    # test: Config = field(default_factory=lambda: cfg)
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
-    base_path: str = f'{cfg.temp_report_path}{experiment}/{creation_time}/'
-    models_path: str = f'{base_path}models/'
-    results_path: str = f'{base_path}/results/'
-    src_path: str = f'{base_path}src/'
-    tb_log_path: str = f'{cfg.tb_path}{experiment}/{creation_time}/'
+    @property
+    def base_path(self):
+        return f'{cfg.temp_report_path}{self.experiment}/{self.creation_time}/'
 
-    # @property
-    # def base_path(self):
-    #     return f'{cfg.report_path}{self.experiment}/{self.creation_time}/'
+    @property
+    def models_path(self):
+        return f'{self.base_path}models/'
 
-    # @property
-    # def models_path(self):
-    #     return f'{self.base_path}models/'
+    @property
+    def src_path(self):
+        return f'{self.base_path}src/'
 
-    # @property
-    # def results_path(self):
-    #     return f'{self.base_path}/results/'
+    @property
+    def tb_log_path(self):
+        return f'{cfg.tb_path}{self.experiment}/{self.creation_time}/'
 
-    def __post_init__(self):
-        self.creation_time = now_str('yyyymmdd_hhmmss')
+    @property
+    def results_path(self):
+        return f'{self.base_path}/results/'
 
     @staticmethod
     def save_default_yaml():
