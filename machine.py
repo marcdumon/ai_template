@@ -102,7 +102,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
         @trainer.on(Events.STARTED)
         def show_batch_images(engine):
             imgs, lbls = next(iter(train_loader))
-            denormalize = DeNormalize(rcp.transforms.normalize_mean, rcp.transforms.normalize_std)
+            denormalize = DeNormalize(**rcp.transforms.normalize)
             for i in range(len(imgs)):
                 imgs[i] = denormalize(imgs[i])
             imgs = imgs.to(cfg.device)
@@ -115,7 +115,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
         @trainer.on(Events.COMPLETED)
         def show_top_losses(engine, k=6):
             nll_loss = nn.NLLLoss(reduction='none')
-            df = predict_dataset(model, valid, nll_loss, transform=None, bs=rcp.bs * 10, device=cfg.device)
+            df = predict_dataset(model, valid, nll_loss, transform=None, device=cfg.device)
             df.sort_values('loss', ascending=False, inplace=True)
             df.reset_index(drop=True, inplace=True)
             for i, row in df.iterrows():
@@ -225,42 +225,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
     trainer.run(data=train_loader, max_epochs=rcp.max_epochs)
     tb_writer.close()
     tb_logger.close()
-    return trainer
-
-
-def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.device):
-    """
-    Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
-    """
-    if transform:
-        dataset.transform = transform
-    else:
-        dataset.transform = get_transforms()
-    dataloader = DataLoader(dataset, bs, shuffle=False, num_workers=8)
-    df = pd.DataFrame()
-    df['fname'] = dataset.data
-    df['target'] = dataset.targets
-    model.to(device)
-    loss = []
-    pred = []
-    pred2 = []
-    for image, target in dataloader:
-        model.eval()
-        with th.no_grad():
-            image, target = image.to(device), target.to(device)
-            logits = model(image)
-            l = loss_fn(logits, target)
-            p = th.argmax(logits, dim=1)
-            # 2nd argmax
-            p2 = th.topk(logits, 2, dim=1)  # returns namedtuple (values, indices)
-            p2 = p2.indices[:, 1]  # second column
-            loss += list(l.to('cpu').numpy())
-            pred += list(p.to('cpu').numpy())
-            pred2 += list(p2.to('cpu').numpy())
-    df['loss'] = loss
-    df['pred'] = pred
-    df['pred2'] = pred2
-    return df
+    return model
 
 
 def get_transforms():
@@ -271,7 +236,8 @@ def get_transforms():
     if rcp.transforms.randomverticalflip: tsfm += [transforms.RandomVerticalFlip(rcp.transforms.randomverticalflip)]
     if rcp.transforms.randomhorizontalflip: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms.randomhorizontalflip)]
     if rcp.transforms.totensor: tsfm += [transforms.ToTensor()]
-    if rcp.transforms.normalize_mean: tsfm += [transforms.Normalize(rcp.transforms.normalize_mean, rcp.transforms.normalize_std)]
+    # if rcp.transforms.normalize_mean: tsfm += [transforms.Normalize(rcp.transforms.normalize['mean'], rcp.transforms.normalize['std'])]
+    if rcp.transforms.normalize: tsfm += [transforms.Normalize(**rcp.transforms.normalize)]
 
     return transforms.Compose(tsfm)
 
@@ -303,7 +269,7 @@ def close_experiment(experiment: str, datetime: str):
     """
     source = f'{cfg.temp_report_path}{experiment}/{datetime}/'
     tb_source = f'../tensorboard/{experiment}/{datetime}/'
-    destination = f'../reports/{experiment}/{datetime}/'
+    destination = f'../experiments/{experiment}/{datetime}/'
     copy_tree(source, destination, verbose=2)
     copy_tree(tb_source, f'{destination}tensorboard', verbose=2)
     remove_tree(source, verbose=2)
@@ -358,6 +324,45 @@ def tb_and_log_train_valid_stats(engine, t_evaluator, v_evaluator, tb_writer):
     tb_writer.add_scalar("0_valid/rec", v_avg_rec, engine.state.epoch)
     tb_writer.add_scalar("0_valid/topK", v_topk, engine.state.epoch)
     tb_writer.flush()
+
+
+def predict_dataset(model, dataset, loss_fn, transform=None, bs=rcp.bs, device=cfg.device):
+    """
+    Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
+    """
+    # Todo: bs=rcp.bs=32 but misteriously changes to 512. Why?
+    print(bs)
+    if transform:
+        dataset.transform = transform
+    else:
+        dataset.transform = get_transforms()
+    dataloader = DataLoader(dataset, bs, shuffle=False, num_workers=8)
+    df = pd.DataFrame()
+    df['fname'] = dataset.data
+    df['target'] = dataset.targets
+    model.to(device)
+    loss = []
+    pred = []
+    pred2 = []
+    targets = []
+    for images, targets in dataloader:
+        model.eval()
+        with th.no_grad():
+            images, targets = images.to(device), targets.to(device)
+            logits = model(images)
+            l = loss_fn(logits, targets)
+            p = th.argmax(logits, dim=1)
+            # 2nd argmax
+            p2 = th.topk(logits, 2, dim=1)  # returns namedtuple (values, indices)
+            p2 = p2.indices[:, 1]  # second column
+            loss += list(l.to('cpu').numpy())
+            pred += list(p.to('cpu').numpy())
+            pred2 += list(p2.to('cpu').numpy())
+    df['loss'] = loss
+    df['pred'] = pred
+    df['pred2'] = pred2
+    targets += list(targets.to('cpu').numpy())
+    return df
 
 
 if __name__ == '__main__':

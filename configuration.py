@@ -24,7 +24,7 @@ class Config:
     device = 'cuda'
     default_config_file: str = './default_config.yml'
     default_recipe_file: str = './default_recipe.yml'
-    temp_report_path: str = '../temp_reports/'
+    temp_report_path: str = '../temp_experiments/'
     tb_path = '../tensorboard/'
     datasets_path: str = '/media/md/Development/0_Datasets/0_standard_datasets/'
 
@@ -79,8 +79,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
         randomverticalflip: float = None
         randomhorizontalflip: float = None
         totensor: bool = True
-        normalize_mean: List[float] = field(default_factory=lambda: [0.1307, ])
-        normalize_std: list = field(default_factory=lambda: [0.3081, ])
+        normalize: dict = field(default_factory=lambda: {'mean': [0, ], 'std': [1, ]})
 
     experiment: str = ''
     description = ''
