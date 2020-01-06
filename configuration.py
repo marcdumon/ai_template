@@ -36,6 +36,7 @@ class Config:
     early_stopping = True
     save_last_checkpoint = True
     save_best_checkpoint = True
+    save_confusion_matrix=True
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
