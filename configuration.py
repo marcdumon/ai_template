@@ -32,7 +32,7 @@ class Config:
     show_top_losses = True
     tb_projector = True
     log_pr_curve = True
-    lr_scheduler = False
+    lr_scheduler = True
     early_stopping = True
     save_last_checkpoint = True
     save_best_checkpoint = True
@@ -70,6 +70,18 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     A dataclass with all the parameters that might vary from one experiment to the other or from one stage of an experiment
     to the other stage
     """
+
+    @dataclass()
+    class transforms:
+        topilimage: bool = True
+        randomrotation: float = None
+        resize: int = None
+        randomverticalflip: float = None
+        randomhorizontalflip: float = None
+        totensor: bool = True
+        normalize_mean: List[float] = field(default_factory=lambda: [0.1307, ])
+        normalize_std: list = field(default_factory=lambda: [0.3081, ])
+
     experiment: str = ''
     description = ''
     stage: int = 0
@@ -80,18 +92,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
     shuffle_batch: bool = True
-
-    # Transforms
-    transforms: dict = field(default_factory=lambda: {'topilimage': True,
-                                                      'randomrotation': None,
-                                                      'resize': None,
-                                                      'randomverticalflip': None,
-                                                      'randomhorizontalflip': None,
-                                                      'totensor': True,
-                                                      'normalize': {
-                                                          'mean': [0.1307, ],
-                                                          'std': [0.3081, ]}
-                                                      })
+    transforms: dataclass = transforms()
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
