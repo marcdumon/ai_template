@@ -204,7 +204,6 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
                                n_saved=4, filename_prefix=f'best_{rcp.stage}',
                                score_function=score_function, score_name='val_loss',
                                global_step_transform=global_step_from_engine(trainer))
-
         v_evaluator.add_event_handler(Events.EPOCH_COMPLETED(every=1), save_best)
         load_checkpoint = False
 
@@ -218,6 +217,19 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             def resume_training(engine):
                 engine.state.iteration = (resume_epoch - 1) * len(engine.state.dataloader)
                 engine.state.epoch = resume_epoch - 1
+
+    if cfg.save_confusion_matrix:
+        @trainer.on(Events.STARTED)
+        def init_best_loss(engine):
+            engine.state.metrics['best_loss'] = 1e99
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def confusion_matric(engine):
+            if engine.state.metrics['best_loss'] > v_evaluator.state.metrics['nll']:
+                engine.state.metrics['best_loss'] = v_evaluator.state.metrics['nll']
+                cm = v_evaluator.state.metrics['conf_mat']
+                cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
+                pretty_plot_confusion_matrix(cm_df, f'{rcp.results_path}cm_{rcp.stage}_{trainer.state.epoch}.png', False)
 
     cfg.save_yaml()
     rcp.save_yaml()
@@ -331,7 +343,6 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=rcp.bs, device=c
     Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
     """
     # Todo: bs=rcp.bs=32 but misteriously changes to 512. Why?
-    print(bs)
     if transform:
         dataset.transform = transform
     else:
@@ -344,7 +355,7 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=rcp.bs, device=c
     loss = []
     pred = []
     pred2 = []
-    targets = []
+    target = []
     for images, targets in dataloader:
         model.eval()
         with th.no_grad():
@@ -358,10 +369,12 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=rcp.bs, device=c
             loss += list(l.to('cpu').numpy())
             pred += list(p.to('cpu').numpy())
             pred2 += list(p2.to('cpu').numpy())
+            target += list(targets.to('cpu').numpy())
     df['loss'] = loss
     df['pred'] = pred
     df['pred2'] = pred2
-    targets += list(targets.to('cpu').numpy())
+    df['target'] = target
+
     return df
 
 
