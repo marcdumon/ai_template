@@ -26,6 +26,7 @@ from skimage import io
 from torch.utils.data import Dataset
 
 from configuration import cfg
+import torch as th
 
 __all__ = ['MNIST_Dataset']
 
@@ -35,7 +36,6 @@ _base_path = cfg.datasets_path
 class Standard_Dataset(Dataset):
     """
     The base class for standard Datasets. It's a subclass of torch.utils.data_process.Dataset.
-
     """
     name = ''
     classes = None
@@ -112,6 +112,14 @@ class Standard_Dataset(Dataset):
         """
         df = pd.DataFrame({'data': self.data, 'targets': self.targets})
         df.to_csv(file)
+
+    def select_n_random(self, n=100):
+        """Selects n random datapoints and their corresponding labels from a dataset"""
+        perm = th.randperm(len(self))
+        perm = perm[:n]
+        imgs = th.stack([self[i][0] for i in perm])
+        lbls = [self[i][1] for i in perm]
+        return imgs, lbls
 
 
 class MNIST_Dataset(Standard_Dataset):

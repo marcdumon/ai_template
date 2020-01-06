@@ -27,6 +27,15 @@ class Config:
     temp_report_path: str = '../temp_reports/'
     tb_path = '../tensorboard/'
     datasets_path: str = '/media/md/Development/0_Datasets/0_standard_datasets/'
+
+    show_batch_images = True
+    show_top_losses = True
+    tb_projector = True
+    log_pr_curve = True
+    lr_scheduler = False
+    early_stopping = True
+    save_last_checkpoint = True
+    save_best_checkpoint = True
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod
@@ -71,6 +80,18 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     lr_frac: List[int] = field(default_factory=lambda: [1, 1])  # By how much the lr will be devided
     max_epochs = 25
     shuffle_batch: bool = True
+
+    # Transforms
+    transforms: dict = field(default_factory=lambda: {'topilimage': True,
+                                                      'randomrotation': None,
+                                                      'resize': None,
+                                                      'randomverticalflip': None,
+                                                      'randomhorizontalflip': None,
+                                                      'totensor': True,
+                                                      'normalize': {
+                                                          'mean': [0.1307, ],
+                                                          'std': [0.3081, ]}
+                                                      })
 
     creation_time: str = now_str('yyyymmdd_hhmmss')
 

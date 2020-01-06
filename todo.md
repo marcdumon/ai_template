@@ -1,14 +1,15 @@
 ## Todo
 Short Term:
+-v run first experiment: what's the effect of increasing noisy labels.
 - make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
-- run first experiment: what's the effect of increasing noisy labels.
 - check get_mean_and_std(dataset) from pytorch_tools
+-v where is 'engine' comming from??? => trainer on
 
  Mid Term (goals version 0.2):
+- make a testmode where no files or logs are stored 
 - sanity checking before training to catch crashes early
 - lr-scheduler: check LambdaLR()
 - check simulate_values and plot_values in param_scheduler.py
-- save description and print(model)
 - organise lr_finder
 - merge Config and Recipe ? 
 - check docstring inheritance in children (fi in standard_dataset)
@@ -18,7 +19,7 @@ Short Term:
 - show_batch_images and tb projector not for every stage (same)
 - confusion matrix outside? also for last epoch
 - show_mpl_grid in pytorch_tools: rename to mpl_show_grid and make generic for tensors, list, df,...
- 
+ -v save description and print(model)
 
 
 - Check:
