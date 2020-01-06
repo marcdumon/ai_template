@@ -102,7 +102,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
         @trainer.on(Events.STARTED)
         def show_batch_images(engine):
             imgs, lbls = next(iter(train_loader))
-            denormalize = DeNormalize(rcp.transforms['normalize']['mean'], rcp.transforms['normalize']['std'])
+            denormalize = DeNormalize(rcp.transforms.normalize_mean, rcp.transforms.normalize_std)
             for i in range(len(imgs)):
                 imgs[i] = denormalize(imgs[i])
             imgs = imgs.to(cfg.device)
@@ -168,7 +168,6 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
                                        num_thresholds=127)
                 tb_writer.flush()
 
-    lr_scheduler = None
     if cfg.lr_scheduler:
         lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, factor=.5, min_lr=1e-7, verbose=True)
         v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step(v_evaluator.state.metrics['nll']))
@@ -266,14 +265,13 @@ def predict_dataset(model, dataset, loss_fn, transform=None, bs=32, device=cfg.d
 
 def get_transforms():
     tsfm = []
-    if rcp.transforms['topilimage']: tsfm += [transforms.ToPILImage()]
-    if rcp.transforms['randomrotation']: tsfm += [transforms.RandomRotation(rcp.transforms['randomrotation'])]
-    if rcp.transforms['resize']: tsfm += [transforms.Resize(rcp.transforms['resize'])]
-    if rcp.transforms['randomverticalflip']: tsfm += [transforms.RandomVerticalFlip(rcp.transforms['randomverticalflip'])]
-    if rcp.transforms['randomhorizontalflip']: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms['randomhorizontalflip'])]
-    if rcp.transforms['totensor']: tsfm += [transforms.ToTensor()]
-    if rcp.transforms['normalize']: tsfm += [transforms.Normalize(rcp.transforms['normalize']['mean'],
-                                                                  rcp.transforms['normalize']['std'])]
+    if rcp.transforms.topilimage: tsfm += [transforms.ToPILImage()]
+    if rcp.transforms.randomrotation: tsfm += [transforms.RandomRotation(rcp.transforms.randomrotation)]
+    if rcp.transforms.resize: tsfm += [transforms.Resize(rcp.transforms.resize)]
+    if rcp.transforms.randomverticalflip: tsfm += [transforms.RandomVerticalFlip(rcp.transforms.randomverticalflip)]
+    if rcp.transforms.randomhorizontalflip: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms.randomhorizontalflip)]
+    if rcp.transforms.totensor: tsfm += [transforms.ToTensor()]
+    if rcp.transforms.normalize_mean: tsfm += [transforms.Normalize(rcp.transforms.normalize_mean, rcp.transforms.normalize_std)]
 
     return transforms.Compose(tsfm)
 
