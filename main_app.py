@@ -25,7 +25,7 @@ set_random_seed(rcp.seed)
 rcp.experiment = 'normalization_or_not_stability_check'
 rcp.description = 'Stage 10 till 19 is with normalization, stage 20 till 29 without. Within each stage, the seed varies from 1 till 10 '
 rcp.stage = 1
-rcp.max_epochs = 100
+rcp.max_epochs = 1
 rcp.lr = 5e-3
 rcp.lr_frac = [1, 10]
 rcp.bs = 32
@@ -34,28 +34,22 @@ lr_find = False
 # close_experiment(rcp.experiment, '20200105_003914')
 setup_experiment()
 
-for i in [1, 2]:
-    for j in range(10):
-        set_random_seed(j + 1)
-        rcp.stage = i * 10 + j
-        if i == 2:
-            rcp.transforms['normalize'] = None
-            cfg.show_batch_images = False
-            cfg.tb_projector = False
+# DATA
+mnist_ds = MNIST_Dataset(sample=False)
+train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
 
-        # DATA
-        mnist_ds = MNIST_Dataset(sample=False)
-        train, valid = random_split_train_valid(dataset=mnist_ds, valid_frac=.2)
-        # Model
-        model = Model().to(cfg.device)  # Model should be on gpu before putting parametyers in optimizer
-        set_requires_grad(model, 'all', True, f'{rcp.models_path}requires_grad_{rcp.stage}.txt')
-        params = set_lr(model, ['fc1', 'fc2'], rcp.lr / rcp.lr_frac[0])
-        params += set_lr(model, ['conv1', 'conv2'], rcp.lr / rcp.lr_frac[1])
-        optimizer = th.optim.Adam(params=params, lr=1e999)
-        loss = th.nn.NLLLoss()
+# Model
+model = Model().to(cfg.device)  # Model should be on gpu before putting parametyers in optimizer
+set_requires_grad(model, 'all', True, f'{rcp.models_path}requires_grad_{rcp.stage}.txt')
+params = set_lr(model, ['fc1', 'fc2'], rcp.lr / rcp.lr_frac[0])
+params += set_lr(model, ['conv1', 'conv2'], rcp.lr / rcp.lr_frac[1])
+optimizer = th.optim.Adam(params=params, lr=1e999)
+loss = th.nn.NLLLoss()
 
-        run_training(model, train=train, valid=valid, optimizer=optimizer, loss=loss, lr_find=lr_find)
+model = run_training(model, train=train, valid=valid, optimizer=optimizer, loss=loss, lr_find=lr_find)
+
 print(rcp.creation_time)
+
 
 if __name__ == '__main__':
     pass
