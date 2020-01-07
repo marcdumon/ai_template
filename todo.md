@@ -1,9 +1,10 @@
 ## Todo
 Short Term:
 -v run first experiment: what's the effect of increasing noisy labels.
-- make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
+-v make baseline for MNIST: train simple cnn and get results for testset. => freeze baseline and don't use test anymore
 - check get_mean_and_std(dataset) from pytorch_tools
 -v where is 'engine' comming from??? => trainer on
+- make installable package
 
  Mid Term (goals version 0.2):
 - make a testmode where no files or logs are stored 

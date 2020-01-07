@@ -118,7 +118,16 @@ def get_class_distribution(dataset):
     return class_distribution
 
 
-def get_mean_and_std(dataset):
+def get_mean_and_std2(dataset):  # Todo: remove because it loads full dataset in memory. Calculate per image
+    print('This method loads the full dataset in memeory !!!! ')
+    imgs = [dataset[i][0] for i in range(len(dataset.data))]
+    imgs = th.stack(imgs)
+    mean = imgs.mean()
+    std = imgs.std()
+    return mean, std
+
+
+def get_mean_and_std(dataset):  # Todo: std calculation is wrong
     """ Compute the mean and std value of dataset. From: https://github.com/isaykatsman/pytorch-cifar/blob/master/utils.py """
     dataloader = th.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = th.zeros(3)
