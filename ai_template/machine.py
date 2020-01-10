@@ -11,6 +11,11 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torchvision as thv
+
+from ai_template.my_tools.confusion_matrix import pretty_plot_confusion_matrix
+from ai_template.my_tools.lr_finder import LRFinder
+from ai_template.my_tools.make_graphviz_graph import make_dot
+from ai_template.my_tools.python_tools import print_file, now_str
 from ignite.contrib.handlers.tensorboard_logger import *
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
@@ -21,13 +26,16 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
-from configuration import rcp, cfg
-from models.standard_models import MNSIT_Simple
-from my_tools.confusion_matrix import pretty_plot_confusion_matrix
-from my_tools.lr_finder import LRFinder
-from my_tools.make_graphviz_graph import make_dot
-from my_tools.python_tools import print_file, now_str
-from my_tools.pytorch_tools import DeNormalize, summary
+from ai_template.my_tools.pytorch_tools import summary, DeNormalize
+from .configuration import rcp, cfg
+from .models.standard_models import MNSIT_Simple
+
+
+# from .my_tools.confusion_matrix import pretty_plot_confusion_matrix
+# from .my_tools.lr_finder import LRFinder
+# from .my_tools.make_graphviz_graph import make_dot
+# from .my_tools.python_tools import print_file, now_str
+# from .my_tools.pytorch_tools import DeNormalize, summary
 
 
 class Model(nn.Module):
