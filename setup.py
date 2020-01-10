@@ -6,8 +6,6 @@
 
 import setuptools
 
-
-
 # with open("README.md", "r") as fh:
 #     long_description = fh.read()
 
@@ -23,6 +21,7 @@ setuptools.setup(
     # packages=['ai_template' , 'ai_template'],
     packages=setuptools.find_packages(),
     # py_modules = ['machine','filter_visualisation','configuration'],
+    scripts=['upgrade.sh'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
