@@ -20,7 +20,7 @@ setuptools.setup(
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/marcdumon/ai_template",
-    packages=['ai_template'],
+    packages=['ai_template' , ],
     # packages=setuptools.find_packages(),
     # py_modules = ['machine','filter_visualisation','configuration'],
     classifiers=[
