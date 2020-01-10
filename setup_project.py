@@ -22,3 +22,4 @@ def setup_project():
         Path(path).mkdir(exist_ok=True)
     script_path = os.path.dirname(os.path.realpath(__file__))
     shutil.copy(f'{script_path}/main_app.py', './src/main_app.py')
+    shutil.copy(f'{script_path}/upgrade.sh', './src/upgrade.sh')
