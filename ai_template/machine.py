@@ -262,6 +262,19 @@ def get_transforms():
     return transforms.Compose(tsfm)
 
 
+def setup_new_project():
+    """
+        Create directories for project:
+        ./experiments
+        ./notebooks
+        ./src
+        ./temp_experiments
+        ./tensorboard
+    """
+    for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
+        Path(path).mkdir(exist_ok=Trueai_)
+
+
 def setup_experiment():
     """
     Create directories for experiment:
