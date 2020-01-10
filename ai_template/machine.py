@@ -3,6 +3,7 @@
 # src - machine.py
 # md
 # --------------------------------------------------------------------------------------------------------
+import os
 import shutil
 import sys
 from distutils.dir_util import remove_tree, copy_tree
@@ -13,6 +14,9 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torchvision as thv
+from ai_template.configuration import cfg, rcp
+
+from ai_template.models.standard_models import MNSIT_Simple
 
 from ai_template.my_tools.confusion_matrix import pretty_plot_confusion_matrix
 from ai_template.my_tools.lr_finder import LRFinder
@@ -29,15 +33,6 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
 from ai_template.my_tools.pytorch_tools import summary, DeNormalize
-from .configuration import rcp, cfg
-from .models.standard_models import MNSIT_Simple
-
-
-# from .my_tools.confusion_matrix import pretty_plot_confusion_matrix
-# from .my_tools.lr_finder import LRFinder
-# from .my_tools.make_graphviz_graph import make_dot
-# from .my_tools.python_tools import print_file, now_str
-# from .my_tools.pytorch_tools import DeNormalize, summary
 
 
 class Model(nn.Module):
@@ -276,8 +271,8 @@ def setup_new_project():
     """
     for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
         Path(path).mkdir(exist_ok=True)
-
-    shutil.copy(f'{sys.path[0]}/main_app.py', './main_app.py')
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    shutil.copy(f'{script_path}/main_app.py', './main_app.py')
 
 
 def setup_experiment():
