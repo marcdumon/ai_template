@@ -21,3 +21,4 @@ def setup_project():
     for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
         Path(path).mkdir(exist_ok=True)
     script_path = os.path.dirname(os.path.realpath(__file__))
+    shutil.copy(f'{script_path}/main_app.py', './src/main_app.py')
