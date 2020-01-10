@@ -6,8 +6,6 @@
 
 import setuptools
 
-print(setuptools.find_packages())
-1/0
 
 
 # with open("README.md", "r") as fh:
