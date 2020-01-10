@@ -10,7 +10,7 @@ import setuptools
 #     long_description = fh.read()
 
 setuptools.setup(
-    name="ml_project_template", # Replace with your own username
+    name="ai_template", # Replace with your own username
     version="0.0.1",
     author="Marc Dumon",
     author_email="7793950+marcdumon@users.noreply.github.com",
