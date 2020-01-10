@@ -259,20 +259,6 @@ def get_transforms():
     return transforms.Compose(tsfm)
 
 
-def setup_new_project():
-    """
-        Create directories for project:
-        ./experiments
-        ./notebooks
-        ./src
-        ./temp_experiments
-        ./tensorboard
-        Copy main_app.py to ./
-    """
-    for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
-        Path(path).mkdir(exist_ok=True)
-    script_path = os.path.dirname(os.path.realpath(__file__))
-    shutil.copy(f'{script_path}/main_app.py', './main_app.py')
 
 
 def setup_experiment():
