@@ -272,7 +272,7 @@ def setup_new_project():
         ./tensorboard
     """
     for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
-        Path(path).mkdir(exist_ok=Trueai_)
+        Path(path).mkdir(exist_ok=True)
 
 
 def setup_experiment():
