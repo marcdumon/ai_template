@@ -19,10 +19,11 @@ setuptools.setup(
     # long_description_content_type="text/markdown",
     url="https://github.com/marcdumon/ai_template",
     packages=setuptools.find_packages(),
-    # classifiers=[
-    #     "Programming Language :: Python :: 3",
-    #     "License :: OSI Approved :: MIT License",
-    #     "Operating System :: OS Independent",
-    # ],
+    py_modules = ['machine.py','filter_visualisation.py','configuration.py'],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
     python_requires='>=3.6',
 )
