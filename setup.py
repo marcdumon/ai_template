@@ -21,7 +21,7 @@ setuptools.setup(
     # packages=['ai_template' , 'ai_template'],
     packages=setuptools.find_packages(),
     # py_modules = ['machine','filter_visualisation','configuration'],
-    scripts=['ai_template/upgrade.sh'],
+    scripts=['bash_scripts/upgrade.sh'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
