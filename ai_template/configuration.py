@@ -14,7 +14,8 @@ from typing import List
 
 import yaml
 
-from my_tools.python_tools import now_str
+# from .my_tools.python_tools import now_str
+from ai_template.my_tools.python_tools import now_str
 
 
 @dataclass

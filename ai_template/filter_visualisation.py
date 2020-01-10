@@ -6,6 +6,7 @@
 from time import sleep
 
 import PIL
+from ai_template.my_tools.pytorch_tools import summary, set_requires_grad
 from scipy import ndimage
 import torch as th
 import torchvision as thv
@@ -19,8 +20,6 @@ from torchvision.models import resnet18, resnet34, vgg16, resnet101, resnet152, 
 import cv2
 import numpy as np
 
-from machine import Model
-from my_tools.pytorch_tools import set_requires_grad, to_np, DeNormalize, summary, model_to_sequential
 import matplotlib.pyplot as plt
 import requests
 import base64
