@@ -6,11 +6,15 @@
 
 import setuptools
 
+print(setuptools.find_packages())
+1/0
+
+
 # with open("README.md", "r") as fh:
 #     long_description = fh.read()
 
 setuptools.setup(
-    name="ai_template", # Replace with your own username
+    name="ai_template",
     version="0.0.1",
     author="Marc Dumon",
     author_email="dumon.marc@gmail.com",
@@ -18,7 +22,8 @@ setuptools.setup(
     # long_description=long_description,
     # long_description_content_type="text/markdown",
     url="https://github.com/marcdumon/ai_template",
-    packages=setuptools.find_packages(),
+    # packages=setuptools.find_packages(),
+    packages=['ai_template'],
     py_modules = ['machine','filter_visualisation','configuration'],
     classifiers=[
         "Programming Language :: Python :: 3",
