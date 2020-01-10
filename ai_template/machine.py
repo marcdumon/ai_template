@@ -3,6 +3,8 @@
 # src - machine.py
 # md
 # --------------------------------------------------------------------------------------------------------
+import shutil
+import sys
 from distutils.dir_util import remove_tree, copy_tree
 from pathlib import Path
 
@@ -270,9 +272,12 @@ def setup_new_project():
         ./src
         ./temp_experiments
         ./tensorboard
+        Copy main_app.py to ./
     """
     for path in ['./experiments', './notebooks', './src', './temp_experiments', './tensorboard']:
         Path(path).mkdir(exist_ok=True)
+
+    shutil.copy(f'{sys.path[0]}/main_app.py', './main_app.py')
 
 
 def setup_experiment():
