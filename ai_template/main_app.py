@@ -3,23 +3,14 @@
 # src - main_app.py
 # md
 # --------------------------------------------------------------------------------------------------------
-import random
-from copy import deepcopy
-from time import sleep
 
 import torch as th
-from torch.utils.data import DataLoader
-from torchvision.transforms import transforms
 
-from .configuration import rcp, cfg
-from .data_process import MNIST_Dataset, standard_datasets
-from .data_process.standard_datasets import FashionMNIST_Dataset
-from .machine import Model, run_training, setup_experiment, close_experiment
-from .my_tools import python_tools
-from .my_tools.lr_finder import LRFinder
-from .my_tools.python_tools import set_random_seed, print_file
-from .my_tools.pytorch_tools import random_split_train_valid, set_lr, summary, set_requires_grad
-import numpy as np
+from ai_template.configuration import rcp, cfg
+from ai_template.data_process.standard_datasets import FashionMNIST_Dataset
+from ai_template.machine import setup_experiment, Model, run_training
+from ai_template.my_tools.python_tools import set_random_seed
+from ai_template.my_tools.pytorch_tools import random_split_train_valid, set_requires_grad, set_lr
 
 set_random_seed(rcp.seed)
 
