@@ -13,13 +13,18 @@ import numpy as np
 import torch as th
 
 
+
 # COMMON
+
+
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     th.manual_seed(seed)
     th.backends.cudnn.deterministic = True
     th.backends.cudnn.benchmark = False
+
+
 
 
 def now_str(pattern='yyyymmdd_hhmmss'):
@@ -55,8 +60,6 @@ def print_file(txt, file='', append=True):
 
 # CHARTING
 def show_mpl_grid(images, titles=None, figsize=(10, 7), gridshape=(0, 0), cm='gray'):
-    # Todo: have this accept a list, np.array or tensor of images. Have different functions for that?
-    # Todo: change name to mpl_show_grid? mlp_show_batch?
     """
     Shows images in a grid. Uses matplotlib pyplot
 
