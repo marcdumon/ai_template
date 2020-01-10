@@ -10,14 +10,14 @@ import setuptools
 #     long_description = fh.read()
 
 setuptools.setup(
-    name="example-pkg-YOUR-USERNAME-HERE", # Replace with your own username
+    name="ml_project_template", # Replace with your own username
     version="0.0.1",
-    author="Example Author",
-    author_email="author@example.com",
-    description="A small example package",
+    author="Marc Dumon",
+    author_email="dumon.marc@gmail.com",
+    description="ML Template",
     # long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    # long_description_content_type="text/markdown",
+    url="https://github.com/marcdumon/ai_template",
     packages=setuptools.find_packages(),
     # classifiers=[
     #     "Programming Language :: Python :: 3",
