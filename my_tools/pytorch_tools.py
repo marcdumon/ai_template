@@ -10,8 +10,10 @@ import numpy as np
 import pandas as pd
 import torch as th
 from sklearn.model_selection import train_test_split
+from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
 import torchvision as thv
+import torch.nn as nn
 from my_tools.python_tools import print_file
 
 
@@ -118,7 +120,16 @@ def get_class_distribution(dataset):
     return class_distribution
 
 
-def get_mean_and_std(dataset):  # Todo: check this out
+def get_mean_and_std2(dataset):  # Todo: remove because it loads full dataset in memory. Calculate per image
+    print('This method loads the full dataset in memeory !!!! ')
+    imgs = [dataset[i][0] for i in range(len(dataset.data))]
+    imgs = th.stack(imgs)
+    mean = imgs.mean()
+    std = imgs.std()
+    return mean, std
+
+
+def get_mean_and_std(dataset):  # Todo: std calculation is wrong
     """ Compute the mean and std value of dataset. From: https://github.com/isaykatsman/pytorch-cifar/blob/master/utils.py """
     dataloader = th.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = th.zeros(3)
@@ -231,19 +242,56 @@ def summary(model, input_size, batch_size=-1, device="cuda", to_file=None):
     print_file("--------------------------------------------------------------------------", to_file)
 
 
-def create_tb_summary_writer(model, data_loader, log_dir):
+def create_tb_summary_writer(model, data_loader, log_dir, device='cuda'):
     """
     Creates tensorboard summary writer, adds the model's graph to tensorboard and returns the writer
     """
     writer = SummaryWriter(log_dir)
     data_loader_iter = iter(data_loader)
     x, y = next(data_loader_iter)
-    x, y = x.to('cuda'), y.to('cuda')  # Todo: Make more generic
+    x, y = x.to(device), y.to(device)
     try:
         writer.add_graph(model, x)
     except Exception as e:
         print("Failed to save model graph: {}".format(e))
     return writer
+
+
+def model_to_sequential(model):
+    """
+    Receives a model, removes all sequential layers and returns one sequential with all layers
+    Todo: This doesn't work if the model is not sequentiable, like Resnet. Does it work with VGG16???
+    """
+
+    def remove_sequential(model):
+        for layer in model.children():
+            if not list(layer.children()):  # if leaf node, add it to list
+                all_layers.append(layer)
+            else:  # if sequence, remove it recursively
+                remove_sequential(layer)
+        return all_layers
+
+    all_layers = []
+    remove_sequential(model)
+    return nn.Sequential(*all_layers)
+
+
+# Tools
+# See https://github.com/fastai/fastai/blob/99c2c269b58349e8edc3025468bfc448b25e9364/old/fastai/core.py
+def to_np(v):  # from fastai. # Todo:test
+    """returns an np.array object given an input of np.array, list, tuple, torch variable or tensor."""
+    if isinstance(v, float): return np.array(v)
+    if isinstance(v, (np.ndarray, np.generic)): return v
+    if isinstance(v, (list, tuple)): return [to_np(o) for o in v]
+    if isinstance(v, th.Tensor): v = v.data
+    if th.cuda.is_available():
+        if is_half_tensor(v): v = v.float()
+    if isinstance(v, th.FloatTensor): v = v.float()
+    return v.cpu().numpy()
+
+
+def is_half_tensor(v):  # todo: test
+    return isinstance(v, th.cuda.HalfTensor)
 
 
 class DeNormalize(thv.transforms.Normalize):

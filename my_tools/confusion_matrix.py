@@ -167,10 +167,12 @@ def pretty_plot_confusion_matrix(df_cm, fig_name='', show=True, annot=True, cmap
     # this is for print allways in the same window
     fig, ax1 = get_new_fig('Conf matrix default', figsize)
 
-    # Adjust the range of cmap to exclude sums
-    vmin = df_cm.values[:-1, :-1].ravel().min()
+    # Adjust the range of cmap to exclude sums df_cm_copy = df_cm.copy()
+    df_cm_copy=df_cm.copy()
+    np.fill_diagonal(df_cm_copy.values,0) # Exclude the diagonal (True positives) in color range
+    vmin = df_cm_copy.values[:-1, :-1].ravel().min()
     vmin = 0
-    vmax = df_cm.values[:-1, :-1].ravel().max()
+    vmax = df_cm_copy.values[:-1, :-1].ravel().max()
     center = np.median(df_cm.values[:-1, :-1].ravel())
     ax = sn.heatmap(df_cm, annot=annot, annot_kws={"size": fz}, linewidths=lw, ax=ax1,
                     vmin=vmin, vmax=vmax, center=center,

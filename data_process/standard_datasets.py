@@ -24,17 +24,18 @@ import numpy as np
 import pandas as pd
 from skimage import io
 from torch.utils.data import Dataset
-import matplotlib.pyplot as plt
 
-__all__ = ['MNIST_Dataset']
+from configuration import cfg
+import torch as th
 
-_base_path = '/media/md/Development/0_Datasets/0_standard_datasets/'  # Todo: refactor this outside
+__all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset']
+
+_base_path = cfg.datasets_path
 
 
 class Standard_Dataset(Dataset):
     """
     The base class for standard Datasets. It's a subclass of torch.utils.data_process.Dataset.
-
     """
     name = ''
     classes = None
@@ -51,7 +52,7 @@ class Standard_Dataset(Dataset):
         Returns:
             tuple(image, target) where image is a transformed PIL image (numpy array) and target is the index of the target class
         """
-        # Todo: check docstring inheritance in children
+
         super(Standard_Dataset, self).__init__()
         self.transform = transform
         assert self.name, "The class variable str 'name' is not set. "
@@ -84,13 +85,14 @@ class Standard_Dataset(Dataset):
         """
         _dataset_path = Path(_base_path + cls.name)
         if test:
-            origin_path = _dataset_path / 'train'
-            destin_path = _dataset_path / 'train_sample'
-        else:
             origin_path = _dataset_path / 'test'
             destin_path = _dataset_path / 'test_sample'
+        else:
+            origin_path = _dataset_path / 'train'
+            destin_path = _dataset_path / 'train_sample'
 
-        all_ims = list(origin_path.glob(f'*.{ext}'))
+        # all_ims = list(origin_path.glob(f'*.{ext}'))
+        all_ims = list(origin_path.glob('**/*'))
 
         if float(n_images).is_integer():
             assert (n_images < len(all_ims)) and (n_images > 0), f"Can't take {n_images} samples from {len(all_ims)} train or test images"
@@ -98,11 +100,17 @@ class Standard_Dataset(Dataset):
             assert (n_images < 1) and (n_images > 0), f"Can't take a fraction of {n_images} images. Fraction must be >0 or <1"
             n_images = int(len(all_ims) * n_images)
         sample_imgs = np.random.choice(all_ims, n_images, replace=False)
+
         if destin_path.exists():
             shutil.rmtree(str(destin_path))
         destin_path.mkdir()
         for f in sample_imgs:
-            shutil.copy(str(f), str(destin_path / f.name))
+            if f.parts[-2] == 'train':  # MNIST
+                shutil.copy(str(f), str(destin_path / f.name))
+            else:  # FaschionMNIST
+                (destin_path / f.parts[-2]).mkdir(exist_ok=True)
+                shutil.copy(str(f), str(destin_path / f.parts[-2] / f.name))
+
         print(f"Created {n_images} images in {destin_path}")
 
     def save_csv(self, file):
@@ -111,6 +119,14 @@ class Standard_Dataset(Dataset):
         """
         df = pd.DataFrame({'data': self.data, 'targets': self.targets})
         df.to_csv(file)
+
+    def select_n_random(self, n=100):
+        """Selects n random datapoints and their corresponding labels from a dataset"""
+        perm = th.randperm(len(self))
+        perm = perm[:n]
+        imgs = th.stack([self[i][0] for i in perm])
+        lbls = [self[i][1] for i in perm]
+        return imgs, lbls
 
 
 class MNIST_Dataset(Standard_Dataset):
@@ -143,12 +159,47 @@ class MNIST_Dataset(Standard_Dataset):
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
         if self.transform is not None:
             img = self.transform(img)
-        return img, target  # Todo: is it not better to use a dict iso tuple? In dict, we easily can add other (meta)data
-        #                       But with a dictionary we can't do image, label = next(iter(dataloader))
-        #                     Todo: Add index to return img, target. Otherwise it's impossible to know which images are in dataloader batch
-        #                           See: https://discuss.pytorch.org/t/how-to-retrieve-the-sample-indices-of-a-mini-batch/7948
-        #                           but Ignite expect to have 2 values, not 3.
+        return img, target
+
+
+class FashionMNIST_Dataset(Standard_Dataset):
+    """
+    Fashion-MNIST is a dataset of Zalando's article images—consisting of a training set of 60,000 examples and a test set of 10,000 examples.
+    Each example is a 28x28 grayscale image, associated with a label from 10 classes
+    More info: https://github.com/zalandoresearch/fashion-mnist
+    """
+    name = 'FashionMNIST'
+    classes = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankleboot']
+
+    def __init__(self, sample=False, test=False, transform=None):
+        """
+           Args:
+                 sample (bool): If True then the datasets contains only a limited amount of pictures.
+                   If False, the datasets contains all the available images.
+                 test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
+                 transform: An optional function/transform that takes in an PIL image and returns a transformed version.
+                   E.g, ``transforms.RandomCrop``
+        """
+        super(FashionMNIST_Dataset, self).__init__(sample, test, transform)
+        data = list(self.path.glob('*/*.png'))
+        targets = [d.parts[-2] for d in data]
+        self.data = list(self.path.glob('*/*.png'))  # list of file paths
+        self.targets = [int(d.parts[-2]) for d in self.data]  # image has the format 012345_num9
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        img_path, target = self.data[index], self.targets[index]
+        img = io.imread(str(img_path), as_gray=False)  # 28x28
+        img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
 
 
 if __name__ == '__main__':
-    print(MNIST_Dataset)
+    fm = MNIST_Dataset()
+    # fm = FashionMNIST_Dataset()
+    # print(len(fm.data))
+    fm.create_samples(100)
