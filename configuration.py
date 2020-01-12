@@ -9,13 +9,11 @@ Manages the configuration of the environemet and the recipe for running the mach
 It reads a yaml files into dataclasses.
 """
 from dataclasses import dataclass, field
-from time import sleep
 from typing import List
 
 import yaml
-
 # from .my_tools.python_tools import now_str
-from ai_template.my_tools.python_tools import now_str
+from my_tools.python_tools import now_str
 
 
 @dataclass
@@ -37,7 +35,8 @@ class Config:
     early_stopping = True
     save_last_checkpoint = True
     save_best_checkpoint = True
-    save_confusion_matrix=True
+    save_confusion_matrix = True
+    log_stats = True
     creation_time: str = now_str('yyyymmdd_hhmmss')
 
     @staticmethod

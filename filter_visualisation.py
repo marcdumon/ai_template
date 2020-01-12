@@ -3,27 +3,15 @@
 # src - filter_visualisation.py
 # md
 # --------------------------------------------------------------------------------------------------------
-from time import sleep
 
 import PIL
-from ai_template.my_tools.pytorch_tools import summary, set_requires_grad
-from scipy import ndimage
-import torch as th
-import torchvision as thv
-from cv2 import resize
-import matplotlib.gridspec as gridspec
-from math import ceil
-from pdb import set_trace
-import torch.nn as nn
-from torchvision import transforms
-from torchvision.models import resnet18, resnet34, vgg16, resnet101, resnet152, vgg16_bn
 import cv2
-import numpy as np
-
 import matplotlib.pyplot as plt
-import requests
-import base64
-import pprint
+import numpy as np
+import torch as th
+from my_tools.pytorch_tools import summary, set_requires_grad
+from torchvision import transforms
+from torchvision.models import vgg16_bn
 
 
 class SaveFeatures:
