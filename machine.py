@@ -3,9 +3,6 @@
 # src - machine.py
 # md
 # --------------------------------------------------------------------------------------------------------
-import os
-import shutil
-import sys
 from distutils.dir_util import remove_tree, copy_tree
 from pathlib import Path
 
@@ -14,25 +11,23 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torchvision as thv
-from ai_template.configuration import cfg, rcp
-
-from ai_template.models.standard_models import MNSIT_Simple
-
-from ai_template.my_tools.confusion_matrix import pretty_plot_confusion_matrix
-from ai_template.my_tools.lr_finder import LRFinder
-from ai_template.my_tools.make_graphviz_graph import make_dot
-from ai_template.my_tools.python_tools import print_file, now_str
 from ignite.contrib.handlers.tensorboard_logger import *
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.handlers import EarlyStopping
 from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
+from my_tools.confusion_matrix import pretty_plot_confusion_matrix
+from my_tools.lr_finder import LRFinder
+from my_tools.make_graphviz_graph import make_dot
+from my_tools.python_tools import print_file, now_str
+from my_tools.pytorch_tools import summary, DeNormalize
 from skimage import io
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
-from ai_template.my_tools.pytorch_tools import summary, DeNormalize
+from configuration import cfg, rcp
+from models.standard_models import MNSIT_Simple
 
 
 class Model(nn.Module):
@@ -235,6 +230,33 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
                 cm = v_evaluator.state.metrics['conf_mat']
                 cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
                 pretty_plot_confusion_matrix(cm_df, f'{rcp.results_path}cm_{rcp.stage}_{trainer.state.epoch}.png', False)
+
+
+    if cfg.log_stats:
+        class Hook:
+            def __init__(self, module):
+                self.name = module[0]
+                self.hook = module[1].register_forward_hook(self.hook_fn)
+                self.stats_mean = 0
+                self.stats_std = 0
+
+            def hook_fn(self, module, input, output):
+                self.stats_mean = output.mean()
+                self.stats_std = output.std()
+
+            def close(self):
+                self.hook.remove()
+
+        hookF = [Hook(layer) for layer in list(model.cnn._modules.items())]
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def log_stats(engine):
+            std = {}
+            mean = {}
+            for hook in hookF:
+                tb_writer.add_scalar(f'std/{hook.name}', hook.stats_std, engine.state.iteration)
+                tb_writer.add_scalar(f'mean/{hook.name}', hook.stats_mean, engine.state.iteration)
+
 
     cfg.save_yaml()
     rcp.save_yaml()
