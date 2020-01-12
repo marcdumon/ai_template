@@ -22,12 +22,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from ai_template.configuration import cfg
+# from configuration import cfg
+import torch as th
 from skimage import io
 from torch.utils.data import Dataset
 
-# from configuration import cfg
-import torch as th
+from configuration import cfg
 
 __all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset']
 

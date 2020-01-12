@@ -5,12 +5,12 @@
 # --------------------------------------------------------------------------------------------------------
 
 import torch as th
+from my_tools.python_tools import set_random_seed
+from my_tools.pytorch_tools import random_split_train_valid, set_requires_grad, set_lr
 
-from ai_template.configuration import rcp, cfg
-from ai_template.data_process.standard_datasets import FashionMNIST_Dataset
-from ai_template.machine import setup_experiment, Model, run_training
-from ai_template.my_tools.python_tools import set_random_seed
-from ai_template.my_tools.pytorch_tools import random_split_train_valid, set_requires_grad, set_lr
+from configuration import rcp, cfg
+from data_process.standard_datasets import FashionMNIST_Dataset
+from machine import setup_experiment, Model, run_training
 
 set_random_seed(rcp.seed)
 
