@@ -30,7 +30,7 @@ from torch.utils.data import Dataset
 
 from configuration import cfg
 
-__all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset']
+__all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset', 'imagenette2_Dataset']
 
 _base_path = cfg.datasets_path
 
