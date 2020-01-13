@@ -6,6 +6,7 @@
 from distutils.dir_util import remove_tree, copy_tree
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
 import torch as th
@@ -119,8 +120,11 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             df.sort_values('loss', ascending=False, inplace=True)
             df.reset_index(drop=True, inplace=True)
             for i, row in df.iterrows():
-                img = io.imread(row['fname'], as_gray=False)
-                img = th.as_tensor(img[np.newaxis, :, :])  # add C
+                print(type(row['fname']))
+                img = cv2.imread(str(row['fname']))
+                print(img.shape)
+                img = th.as_tensor(img.transpose(2, 0, 1))  # #CHW
+                print(img.shape)
                 tag = f'TopLoss_{engine.state.epoch}/{row.loss:.4f}/{row.target}/{row.pred}/{row.pred2}'
                 tb_writer.add_image(tag, img, 0)
                 if i >= k - 1: break
@@ -365,7 +369,6 @@ def predict_dataset(model, dataset, loss_fn, bs, transform=None, device=cfg.devi
     """
     Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
     """
-    # Todo: bs=rcp.bs=32 but misteriously changes to 512. Why?
     if transform:
         dataset.transform = transform
     else:
