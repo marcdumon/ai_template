@@ -229,6 +229,8 @@ class imagenette2_Dataset(Standard_Dataset):
     def __getitem__(self, index):
         img_path, target = self.data[index], self.targets[index]
         img = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
+        # cv2 order is BGR. Change to RGB
+        img = img[..., ::-1]  # ... is equivalent to :,: while ::-1 inverts the order of the channels
         if self.transform is not None:
             img = self.transform(img)
         return img, target
