@@ -267,7 +267,7 @@ def get_transforms():
     tsfm = []
     if rcp.transforms.topilimage: tsfm += [transforms.ToPILImage()]
     if rcp.transforms.randomrotation: tsfm += [transforms.RandomRotation(rcp.transforms.randomrotation)]
-    if rcp.transforms.resize: tsfm += [transforms.Resize(rcp.transforms.resize)]
+    if rcp.transforms.resize: tsfm += [transforms.Resize((rcp.transforms.resize,rcp.transforms.resize))]
     if rcp.transforms.randomverticalflip: tsfm += [transforms.RandomVerticalFlip(rcp.transforms.randomverticalflip)]
     if rcp.transforms.randomhorizontalflip: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms.randomhorizontalflip)]
     if rcp.transforms.totensor: tsfm += [transforms.ToTensor()]
