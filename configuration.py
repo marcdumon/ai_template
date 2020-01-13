@@ -81,6 +81,7 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
         randomhorizontalflip: float = None
         totensor: bool = True
         normalize: dict = field(default_factory=lambda: {'mean': [0, ], 'std': [1, ]})
+        # normalize: dict = field(default_factory=lambda: {'mean': [.485, .456, .406], 'std': [.229, .224, .225]})  # imagenet
 
     experiment: str = ''
     description = ''

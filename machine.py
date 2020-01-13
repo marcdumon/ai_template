@@ -115,7 +115,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
         @trainer.on(Events.COMPLETED)
         def show_top_losses(engine, k=6):
             nll_loss = nn.NLLLoss(reduction='none')
-            df = predict_dataset(model, valid, nll_loss, transform=None, device=cfg.device)
+            df = predict_dataset(model, valid, nll_loss, transform=None, bs=rcp.bs, device=cfg.device)
             df.sort_values('loss', ascending=False, inplace=True)
             df.reset_index(drop=True, inplace=True)
             for i, row in df.iterrows():
@@ -267,7 +267,7 @@ def get_transforms():
     tsfm = []
     if rcp.transforms.topilimage: tsfm += [transforms.ToPILImage()]
     if rcp.transforms.randomrotation: tsfm += [transforms.RandomRotation(rcp.transforms.randomrotation)]
-    if rcp.transforms.resize: tsfm += [transforms.Resize((rcp.transforms.resize,rcp.transforms.resize))]
+    if rcp.transforms.resize: tsfm += [transforms.Resize((rcp.transforms.resize, rcp.transforms.resize))]
     if rcp.transforms.randomverticalflip: tsfm += [transforms.RandomVerticalFlip(rcp.transforms.randomverticalflip)]
     if rcp.transforms.randomhorizontalflip: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms.randomhorizontalflip)]
     if rcp.transforms.totensor: tsfm += [transforms.ToTensor()]
@@ -361,7 +361,7 @@ def tb_and_log_train_valid_stats(engine, t_evaluator, v_evaluator, tb_writer):
     tb_writer.flush()
 
 
-def predict_dataset(model, dataset, loss_fn, transform=None, bs=rcp.bs, device=cfg.device):
+def predict_dataset(model, dataset, loss_fn, bs, transform=None, device=cfg.device):
     """
     Takes a model, dataset and loss_fn returns a dataframe with columns = [fname, targets, loss, pred]
     """
