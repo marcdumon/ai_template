@@ -231,7 +231,6 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
                 cm_df = pd.DataFrame(cm.numpy(), index=valid.classes, columns=valid.classes)
                 pretty_plot_confusion_matrix(cm_df, f'{rcp.results_path}cm_{rcp.stage}_{trainer.state.epoch}.png', False)
 
-
     if cfg.log_stats:
         class Hook:
             def __init__(self, module):
@@ -247,16 +246,13 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             def close(self):
                 self.hook.remove()
 
-        hookF = [Hook(layer) for layer in list(model.cnn._modules.items())]
+        hookF = [Hook(layer) for layer in list(model.cnn.named_children())[:2]]
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def log_stats(engine):
-            std = {}
-            mean = {}
             for hook in hookF:
                 tb_writer.add_scalar(f'std/{hook.name}', hook.stats_std, engine.state.iteration)
                 tb_writer.add_scalar(f'mean/{hook.name}', hook.stats_mean, engine.state.iteration)
-
 
     cfg.save_yaml()
     rcp.save_yaml()
@@ -279,8 +275,6 @@ def get_transforms():
     if rcp.transforms.normalize: tsfm += [transforms.Normalize(**rcp.transforms.normalize)]
 
     return transforms.Compose(tsfm)
-
-
 
 
 def setup_experiment():
