@@ -120,11 +120,8 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             df.sort_values('loss', ascending=False, inplace=True)
             df.reset_index(drop=True, inplace=True)
             for i, row in df.iterrows():
-                print(type(row['fname']))
                 img = cv2.imread(str(row['fname']))
-                print(img.shape)
                 img = th.as_tensor(img.transpose(2, 0, 1))  # #CHW
-                print(img.shape)
                 tag = f'TopLoss_{engine.state.epoch}/{row.loss:.4f}/{row.target}/{row.pred}/{row.pred2}'
                 tb_writer.add_image(tag, img, 0)
                 if i >= k - 1: break

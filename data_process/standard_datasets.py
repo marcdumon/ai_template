@@ -94,7 +94,7 @@ class Standard_Dataset(Dataset):
             destin_path = _dataset_path / 'train_sample'
 
         # all_ims = list(origin_path.glob(f'*.{ext}'))
-        all_ims = list(origin_path.glob('**/*'))
+        all_ims = list(origin_path.glob('**/*.*'))
 
         if float(n_images).is_integer():
             assert (n_images < len(all_ims)) and (n_images > 0), f"Can't take {n_images} samples from {len(all_ims)} train or test images"
@@ -109,7 +109,7 @@ class Standard_Dataset(Dataset):
         for f in sample_imgs:
             if f.parts[-2] == 'train':  # MNIST
                 shutil.copy(str(f), str(destin_path / f.name))
-            else:  # FaschionMNIST
+            else:  # FaschionMNIST, imagenette2
                 (destin_path / f.parts[-2]).mkdir(exist_ok=True)
                 shutil.copy(str(f), str(destin_path / f.parts[-2] / f.name))
 
