@@ -20,6 +20,7 @@ The following datasets have currently been implemented:
 import shutil
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
 # from configuration import cfg
@@ -156,7 +157,7 @@ class MNIST_Dataset(Standard_Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.data[index], self.targets[index]
-        img = io.imread(str(img_path), as_gray=False)  # 28x28
+        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)  # 28x28
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
         if self.transform is not None:
             img = self.transform(img)
@@ -192,7 +193,7 @@ class FashionMNIST_Dataset(Standard_Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.data[index], self.targets[index]
-        img = io.imread(str(img_path), as_gray=False)  # 28x28
+        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)  # 28x28
         img = img[:, :, np.newaxis]  # 28x28x1 channel added to work with color models
         if self.transform is not None:
             img = self.transform(img)
@@ -227,7 +228,7 @@ class imagenette2_Dataset(Standard_Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.data[index], self.targets[index]
-        img = io.imread(str(img_path), as_gray=False)
+        img = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
         if self.transform is not None:
             img = self.transform(img)
         return img, target
