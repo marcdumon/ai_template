@@ -199,6 +199,40 @@ class FashionMNIST_Dataset(Standard_Dataset):
         return img, target
 
 
+class imagenette2_Dataset(Standard_Dataset):
+    """
+     Imagenette: a subset of 10 easily classified classes from  Imagenet (tench, English springer, cassette player, chain saw,
+     church, French horn, garbage truck, gas pump, golf ball, parachute).
+     More info: https://github.com/fastai/imagenette
+    """
+    name = 'imagenette2'
+    classes = ['n01440764', 'n02102040', 'n02979186', 'n03000684', 'n03028079', 'n03394916', 'n03417042', 'n03425413', 'n03445777', 'n03888257']
+
+    def __init__(self, sample=False, test=False, transform=None):
+        """
+           Args:
+                 sample (bool): If True then the datasets contains only a limited amount of pictures.
+                   If False, the datasets contains all the available images.
+                 test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
+                 transform: An optional function/transform that takes in an PIL image and returns a transformed version.
+                   E.g, ``transforms.RandomCrop``
+        """
+        super(imagenette2_Dataset, self).__init__(sample, test, transform)
+        data = list(self.path.glob('*/*.JPEG'))
+        self.data = list(self.path.glob('*/*.JPEG'))  # list of file paths
+        self.targets = [d.parts[-2] for d in data]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        img_path, target = self.data[index], self.targets[index]
+        img = io.imread(str(img_path), as_gray=False)
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
+
+
 if __name__ == '__main__':
     fm = MNIST_Dataset()
     # fm = FashionMNIST_Dataset()
