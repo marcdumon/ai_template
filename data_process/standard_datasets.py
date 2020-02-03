@@ -30,7 +30,7 @@ from torch.utils.data import Dataset
 
 from configuration import cfg
 
-__all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset', 'imagenette2_Dataset']
+__all__ = ['MNIST_Dataset', 'FashionMNIST_Dataset', 'Imagenette2_Dataset', 'Imagewoof2_Dataset']
 
 _base_path = cfg.datasets_path
 
@@ -200,7 +200,7 @@ class FashionMNIST_Dataset(Standard_Dataset):
         return img, target
 
 
-class imagenette2_Dataset(Standard_Dataset):
+class Imagenette2_Dataset(Standard_Dataset):
     """
      Imagenette: a subset of 10 easily classified classes from  Imagenet (tench, English springer, cassette player, chain saw,
      church, French horn, garbage truck, gas pump, golf ball, parachute).
@@ -222,6 +222,43 @@ class imagenette2_Dataset(Standard_Dataset):
         data = list(self.path.glob('*/*.JPEG'))
         self.data = list(self.path.glob('*/*.JPEG'))  # list of file paths
         self.targets = [d.parts[-2] for d in data]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        img_path, target = self.data[index], self.targets[index]
+        img = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
+        # cv2 order is BGR. Change to RGB
+        img = img[..., ::-1]  # ... is equivalent to :,: while ::-1 inverts the order of the channels
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
+
+
+class Imagewoof2_Dataset(Standard_Dataset):
+    """
+     Imagewoof: a subset of 10 difficult to classify classes from Imagenet (dogs).
+     Careful: 173 images are grayscale!
+     More info: https://github.com/fastai/imagenette
+    """
+    name = 'imagewoof2'
+    classes = ['n02086240', 'n02087394', 'n02088364', 'n02089973', 'n02093754', 'n02096294', 'n02099601', 'n02105641', 'n02111889', 'n02115641']
+
+    def __init__(self, sample=False, test=False, transform=None):
+        """
+           Args:
+                 sample (bool): If True then the datasets contains only a limited amount of pictures.
+                   If False, the datasets contains all the available images.
+                 test: If True then the dataset contains the testimages. If false then the dataset contains the train images.
+                 transform: An optional function/transform that takes in an PIL image and returns a transformed version.
+                   E.g, ``transforms.RandomCrop``
+        """
+        super(Imagewoof2_Dataset, self).__init__(sample, test, transform)
+        data = list(self.path.glob('*/*.JPEG'))
+        self.data = list(self.path.glob('*/*.JPEG'))  # list of file paths
+        targets = [d.parts[-2] for d in data]
+        self.targets = [self.classes.index(t) for t in targets]  #
 
     def __len__(self):
         return len(self.data)
