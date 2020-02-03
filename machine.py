@@ -12,35 +12,48 @@ import pandas as pd
 import torch as th
 import torch.nn as nn
 import torchvision as thv
+from ignite.contrib.handlers import CosineAnnealingScheduler
 from ignite.contrib.handlers.tensorboard_logger import *
 from ignite.engine import create_supervised_trainer, create_supervised_evaluator, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.handlers import EarlyStopping
 from ignite.metrics import Accuracy, Loss, Precision, Recall, TopKCategoricalAccuracy, ConfusionMatrix
 from my_tools.confusion_matrix import pretty_plot_confusion_matrix
+from my_tools.delayed_lr_scheduler import DelayedCosineAnnealingLR, DelayerScheduler
 from my_tools.lr_finder import LRFinder
 from my_tools.make_graphviz_graph import make_dot
 from my_tools.python_tools import print_file, now_str
-from my_tools.pytorch_tools import summary, DeNormalize
+from my_tools.pytorch_tools import DeNormalize, summary
 from skimage import io
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
+from torchvision.models import vgg16, resnet18
 from torchvision.transforms import transforms
 
-from configuration import cfg, rcp
-from models.standard_models import MNSIT_Simple
+from configuration import rcp, cfg
+from models.standard_models import MNSIT_Simple, imagenette2_Simple
 
 
 class Model(nn.Module):
 
     def __init__(self):
         super(Model, self).__init__()
-        self.cnn = MNSIT_Simple()
-        # self.resnet = resnet18(pretrained=True)
+        # self.cnn = MNSIT_Simple()
+        # self.cnn = imagenette2_Simple()
+        # self.vgg = vgg16()
+        self.cnn = resnet18(pretrained=False)
+        self.cnn.fc = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(),
+            nn.Linear(512, 10),
+            nn.LogSoftmax(dim=1)
+        )
 
     def forward(self, x):
         x = self.cnn(x)
-        # x=self.resnet(x)
+        # x = self.vgg(x)
+
         return x
 
 
@@ -48,8 +61,6 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
     print_file(f'Experiment: {rcp.experiment}\nDescription:{rcp.description}', f'{rcp.base_path}description.txt')
     print_file(model, f'{rcp.models_path}model.txt')
     print_file(get_transforms(), f'{rcp.models_path}transform_{rcp.stage}.txt')
-    summary(model, (1, 28, 28), batch_size=rcp.bs, device=cfg.device, to_file=f'{rcp.models_path}summary_{rcp.stage}.txt')
-
     # Data
     train.transform = get_transforms()
     valid.transform = get_transforms()
@@ -63,6 +74,7 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
     one_batch = next(iter(train_loader))
     dot = make_dot(model(one_batch[0].to(cfg.device)), params=dict(model.named_parameters()))
     dot.render(f'{rcp.models_path}graph', './', format='png', cleanup=True)
+    summary(model, one_batch[0].shape[-3:], batch_size=rcp.bs, device=cfg.device, to_file=f'{rcp.models_path}summary_{rcp.stage}.txt')
 
     # Engines
     trainer = create_supervised_trainer(model, optimizer, loss, device=cfg.device)
@@ -128,11 +140,11 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             tb_writer.flush()
 
     if cfg.tb_projector:
-        images, labels = train.select_n_random(100)
+        images, labels = train.select_n_random(250)
         # get the class labels for each image
         class_labels = [train.classes[lab] for lab in labels]
         # log embeddings
-        features = images.view(-1, images.shape[-1] * images.shape[-2])  # nx1x28x28 -> n*784
+        features = images.view(-1, images.shape[-1] * images.shape[-2])
         tb_writer.add_embedding(features, metadata=class_labels, label_img=images)
 
     if cfg.log_pr_curve:
@@ -169,9 +181,13 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
                                        num_thresholds=127)
                 tb_writer.flush()
 
+    print()
+
     if cfg.lr_scheduler:
-        lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, factor=.5, min_lr=1e-7, verbose=True)
-        v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step(v_evaluator.state.metrics['nll']))
+        # lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, factor=.5, min_lr=1e-7, verbose=True)
+        # v_evaluator.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step(v_evaluator.state.metrics['nll']))
+        lr_scheduler = DelayedCosineAnnealingLR(optimizer, 10, 5)
+        trainer.add_event_handler(Events.EPOCH_COMPLETED, lambda engine: lr_scheduler.step(trainer.state.epoch))
 
     if cfg.early_stopping:
         def score_function(engine):
@@ -247,10 +263,12 @@ def run_training(model, train, valid, optimizer, loss, lr_find=False):
             def close(self):
                 self.hook.remove()
 
-        hookF = [Hook(layer) for layer in list(model.cnn.named_children())[:2]]
+        hookF = [Hook(layer) for layer in list(model.cnn.named_children())]
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def log_stats(engine):
+            std = {}
+            mean = {}
             for hook in hookF:
                 tb_writer.add_scalar(f'std/{hook.name}', hook.stats_std, engine.state.iteration)
                 tb_writer.add_scalar(f'mean/{hook.name}', hook.stats_mean, engine.state.iteration)
@@ -268,11 +286,13 @@ def get_transforms():
     tsfm = []
     if rcp.transforms.topilimage: tsfm += [transforms.ToPILImage()]
     if rcp.transforms.randomrotation: tsfm += [transforms.RandomRotation(rcp.transforms.randomrotation)]
-    if rcp.transforms.resize: tsfm += [transforms.Resize((rcp.transforms.resize, rcp.transforms.resize))]
     if rcp.transforms.randomverticalflip: tsfm += [transforms.RandomVerticalFlip(rcp.transforms.randomverticalflip)]
     if rcp.transforms.randomhorizontalflip: tsfm += [transforms.RandomHorizontalFlip(rcp.transforms.randomhorizontalflip)]
+    if rcp.transforms.colorjitter: tsfm += [transforms.ColorJitter(**rcp.transforms.colorjitter)]
+
+    # if rcp.transforms.randomcrop: tsfm += [transforms.RandomCrop(rcp.transforms.randomcrop)]
+    if rcp.transforms.resize: tsfm += [transforms.Resize((rcp.transforms.resize, rcp.transforms.resize))]
     if rcp.transforms.totensor: tsfm += [transforms.ToTensor()]
-    # if rcp.transforms.normalize_mean: tsfm += [transforms.Normalize(rcp.transforms.normalize['mean'], rcp.transforms.normalize['std'])]
     if rcp.transforms.normalize: tsfm += [transforms.Normalize(**rcp.transforms.normalize)]
 
     return transforms.Compose(tsfm)
@@ -315,7 +335,7 @@ def close_experiment(experiment: str, datetime: str):
 
 def lr_finder(model, optimizer, loss, train_loader, valid_loader=None, device=cfg.device):
     lr_find = LRFinder(model, optimizer, loss, device)
-    lr_find.range_test(train_loader=train_loader, val_loader=valid_loader, end_lr=1e-1, num_iter=100)
+    lr_find.range_test(train_loader=train_loader, val_loader=valid_loader, end_lr=1e-2, num_iter=100)
     lr_find.plot()
     lr_find.reset()
     exit()

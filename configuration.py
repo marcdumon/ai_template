@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from typing import List
 
 import yaml
-# from .my_tools.python_tools import now_str
 from my_tools.python_tools import now_str
 
 
@@ -25,11 +24,11 @@ class Config:
     default_recipe_file: str = './default_recipe.yml'
     temp_report_path: str = '../temp_experiments/'
     tb_path = '../tensorboard/'
-    datasets_path: str = '/media/md/Development/0_Datasets/0_standard_datasets/'
+    datasets_path: str = '/media/md/Datasets/'
 
     show_batch_images = True
     show_top_losses = True
-    tb_projector = True
+    tb_projector = False  # TODO: Doesn't work!!!
     log_pr_curve = True
     lr_scheduler = True
     early_stopping = True
@@ -75,13 +74,16 @@ class Recipe:  # Prescription, Ingredient, ModusOperandi
     @dataclass()
     class transforms:
         topilimage: bool = True
-        randomrotation: float = None
-        resize: int = None
+        randomrotation: float = 360
+        resize: int = 320
         randomverticalflip: float = None
         randomhorizontalflip: float = None
+        # colorjitter: dict = field(default_factory=lambda: {'brightness': 0.6, 'saturation': 0.6, 'contrast': 0.6, 'hue': 0.5})
+        colorjitter: dict = None
+        randomcrop: int = None
         totensor: bool = True
-        normalize: dict = field(default_factory=lambda: {'mean': [0, ], 'std': [1, ]})
-        # normalize: dict = field(default_factory=lambda: {'mean': [.485, .456, .406], 'std': [.229, .224, .225]})  # imagenet
+        # normalize: dict = field(default_factory=lambda: {'mean': [0, ], 'std': [1, ]})
+        normalize: dict = field(default_factory=lambda: {'mean': [.485, .456, .406], 'std': [.229, .224, .225]})  # imagenet
 
     experiment: str = ''
     description = ''
